@@ -1,0 +1,184 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+
+\input{../hol_commands.inc}
+
+\title{Exercise 5}
+
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part}ITP Exercise 5
+\webversion{}{\\\small{due Friday 26th May (except 1.3 and 1.4)\\ 1.3 and 1.4 due Friday 2nd June}}
+\end{center}
+\bigskip
+
+\section{Multiple Definitions / Formal Sanity}
+
+\ml{rich\_listTheory} provides a predicate \hol{IS\_SUBLIST}. It checks whether
+a list appears somewhere as part of another list:
+
+\begin{center}
+\begin{verbatim}
+|- !l1 l2. IS_SUBLIST l1 l2 <=> ?l l'. l1 = l ++ (l2 ++ l')
+\end{verbatim}
+\end{center}
+
+Define a weaker version of such a predicate called \hol{IS\_WEAK\_SUBLIST} that allows additional elements between
+the elements of \texttt{l2}. So, for example \hol{IS\_WEAK\_SUBLIST [1;2;3;4;5;6;7] [2;5;6]} should hold. In contrast the statements \hol{IS\_WEAK\_SUBLIST [1;2;3;4;5;6;7] [2;6;5]} or \hol{IS\_WEAK\_SUBLIST [1;2;3;4;5;6;7] [2;5;6;8]} do not hold. Another way of describing the semantics of \hol{IS\_WEAK\_SUBLIST l1 l2} is saying that one can get \texttt{l2} by removing elements from \hol{l1} while keeping the order.
+
+\subsection{Recursive Definition}
+
+Define \hol{IS\_WEAK\_SUBLIST} recursively using \hol{Define}. Name your function \hol{IS\_WEAK\_SUBLIST\_REC}. Test this definition via \hol{EVAL} and prove at least 2 sanity check lemmata, which do not coincide with the lemmata you are asked to show below.
+
+\subsection{Filter Definition}
+
+Define a version of \hol{IS\_WEAK\_SUBLIST} called \hol{IS\_WEAK\_SUBLIST\_FILTER} using the existing list function \hol{FILTER}. You might want to use \hol{ZIP}, \hol{MAP}, \hol{FST} and \hol{SND} as well. The idea is to check for the existence of a list of booleans of the same length as \hol{l1}, zip this list with \hol{l1} and filter. You probably want to introduce auxiliary definitions before defining \hol{IS\_WEAK\_SUBLIST\_FILTER}.
+
+The resulting definition is not executable via \hol{EVAL}. Anyhow, show at least 2 sanity check lemmata, which do not coincide with the lemmata you are asked to show below.
+
+\subsection{Equivalence Proof}
+
+Show \hol{IS\_WEAK\_SUBLIST\_REC = IS\_WEAK\_SUBLIST\_FILTER}. You might want to prove various auxiliary lemmata first. You might want to use among other things \hol{FUN\_EQ\_THM} and the list function \texttt{REPLICATE}. 
+
+\subsection{Properties}
+
+Show the following properties of \texttt{IS\_WEAK\_SUBLIST\_REC} and \texttt{IS\_WEAK\_SUBLIST\_FILTER}. This means that for each property stated below in terms of \texttt{IS\_WEAK\_SUBLIST} you should prove one lemma using \texttt{IS\_WEAK\_SUBLIST\_REC} and another lemma using \texttt{IS\_WEAK\_SUBLIST\_FILTER}. Don't use the fact that both functions are equal. The point of this exercise is partly to demonstrate the impact of different definitions on proofs. You might of course use previously proved lemmata to prove additional ones.
+
+\begin{enumerate}
+\item \hol{!l1a l1 l1b l2.\ IS\_WEAK\_SUBLIST l1 l2 ==>\\
+\-\qquad IS\_WEAK\_SUBLIST (l1a ++ l1 ++ l1b) l2}
+\item \hol{!l1a l1b l2a l2b.\ IS\_WEAK\_SUBLIST l1a l2a ==> IS\_WEAK\_SUBLIST l1b l2b ==>\\ 
+\-\qquad IS\_WEAK\_SUBLIST (l1a ++ l1b) (l2a ++ l2b)}
+\item \hol{!l.\ IS\_WEAK\_SUBLIST l l}
+\item \hol{!l1 l2 l3.\ IS\_WEAK\_SUBLIST l1 l2 ==> IS\_WEAK\_SUBLIST l2 l3 ==>\\
+\-\qquad IS\_WEAK\_SUBLIST l1 l3}
+\item \hol{!l1 l2.\ IS\_WEAK\_SUBLIST l1 l2 ==> IS\_WEAK\_SUBLIST l2 l1 ==> (l1 = l2)}
+\end{enumerate}
+
+\section{Deep and Shallow Embeddings}
+
+As seen in the lecture let's define a deep and a shallow embedding of
+propositional logic. Use the names and definitions from the lecture
+notes. Add a definition stating that two propositional formulas are
+equivalent, iff their semantics coincides for all variable
+assignments, \ie
+
+\begin{center}
+\verb#PROP_IS_EQUIV p1 p2 <=> (!a. PROP_SEM a p1 = PROP_SEM a p2)#
+\end{center}
+
+
+\subsection{Syntax for propositional formulas}
+
+Define in SML syntax functions for all shallowly embedded propositional formulas. 
+Define for each constructor a make - function, a destructor and a check. 
+For \hol{sh\_and} I would like to have for example
+\begin{itemize}
+\item \hol{mk\_sh\_and :\ term -> term -> term}, 
+\item \hol{dest\_sh\_and :\ term -> (term * term)} and
+\item \hol{is\_sh\_and :\ term -> bool}.
+\end{itemize}
+Define a check \hol{is\_sh\_prop :\ term -> bool} that checks whether
+a term is a shallowly embedded propositional formula.
+
+\subsection{Getting Rid of Conjunction and Implication}
+
+Define a function in HOL \hol{PROP\_CONTAINS\_NO\_AND\_IMPL : prop -> bool} that checks whether a propositional
+formula contains no conjunction and implication operators. Define a similar function \hol{sh\_prop\_contains\_no\_and\_impl} in SML that checks the same property for shallowly embedded formulas.
+
+Define a function \hol{PROP\_REMOVE\_AND\_IMPL} in HOL that removes all conjunctions and implications
+from a propositional formula and returns an equivalent one. Prove these properties, \ie prove
+
+\begin{itemize}
+\item \verb#!p. PROP_IS_EQUIV (PROP_REMOVE_AND_IMPL p) p#
+\item \verb#!p. PROP_CONTAINS_NO_AND_IMPL (PROP_REMOVE_AND_IMPL p)#
+\end{itemize}
+
+Implement a similar function \hol{sh\_prop\_remove\_and\_impl :\ term -> thm} in SML that performs the same operation on the shallow embedding and returns a theorem stating that the input term is equal to a version without conjunctions and implications. The SML version is allowed to fail, if the input term does not satisfy \hol{is\_sh\_prop}.
+
+Notice, that \hol{PROP\_REMOVE\_AND\_IMPL} is a verified function, whereas
+\hol{sh\_prop\_remove\_and\_impl} is a verifying one.
+
+
+\section{Fancy Function Definitions}
+
+In the lecture the termination proof for quicksort was briefly discussed.
+As an exercise, let's define \hol{minsort}. This function \hol{minsort} sorts
+a list of natural numbers, by always searching a minimal element of the list,
+put it in front of the list a recursively sort the rest of this list. In HOL, 
+it can be defined as
+
+\begin{verbatim}
+val expunge_def = 
+ Define
+    `(expunge x []     = [])
+ /\  (expunge x (h::t) = if x=h then expunge x t else h::expunge x t)`;
+
+val min_def = 
+ Define
+    `(min [] m = m) 
+ /\  (min (h::t) m = if m <= h then min t m else min t h)`;
+
+val minsort_defn = 
+ Hol_defn "minsort"
+    `(minsort [] = []) 
+ /\  (minsort (h::t) =
+       let m = min t h
+       in 
+         m::minsort (expunge m (h::t)))`;
+\end{verbatim}
+
+Notice, that TFL (\ie \hol{Define}) is not able to show automatically
+that \hol{minsort} is terminating. You need to do this manually. Show
+auxiliary lemmata about \hol{min} and \hol{expunge} and use them with
+\hol{Defn.tprove} (and \hol{Defn.tgoal}) to show that \hol{minsort}
+terminates.
+
+\clearpage
+\section{Hints}
+
+\subsection{Definition of \hol{IS\_WEAK\_SUBLIST}}
+
+\hol{IS\_WEAK\_SUBLIST\_REC} and \hol{IS\_WEAK\_SUBLIST\_FILTER} can be defined by
+
+\begin{verbatim}
+val IS_WEAK_SUBLIST_REC_def = Define `
+  (IS_WEAK_SUBLIST_REC (l1 : 'a list) ([]:'a list) = T) /\
+  (IS_WEAK_SUBLIST_REC [] (_::_) = F) /\
+  (IS_WEAK_SUBLIST_REC (y::ys) (x::xs) = (
+     (x = y) /\ IS_WEAK_SUBLIST_REC ys xs) \/ (IS_WEAK_SUBLIST_REC ys (x::xs)))`;
+
+val FILTER_BY_BOOLS_def = Define `
+  FILTER_BY_BOOLS bl l = MAP SND (FILTER FST (ZIP (bl, l)))`
+
+val IS_WEAK_SUBLIST_FILTER_def = Define `IS_WEAK_SUBLIST_FILTER l1 l2 =
+  ?(bl : bool list). (LENGTH bl = LENGTH l1) /\ (l2 = FILTER_BY_BOOLS bl l1)`
+\end{verbatim}
+
+
+\subsection{Termination of \hol{minsort}}
+
+\hol{minsort} is an example of the TFL library. You can find a termination proof in the HOL sources. However, really try to prove termination yourself first. Before you start looking up the proof, here a few hints:
+
+\begin{itemize}
+\item The main idea is that the length of \hol{expunge m (h::t)} is shorter than the length of \hol{h::t}, \ie start your termination proof with \hol{WF\_REL\_TAC LENGTH}. 
+\item show the lemma \hol{!x xs.\ LENGTH (expunge x xs) <= LENGTH xs}
+\item show the lemma \hol{!x xs.\ MEM x xs ==> LENGTH (expunge x xs) < LENGTH xs}
+\item show the lemma \hol{!x xs.\ MEM (min xs x) (x::xs)}
+\end{itemize}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

@@ -1,0 +1,987 @@
+\part{Basic Definitions}
+
+\frame[plain]{\partpage}
+
+\section{Definitions, Axioms and Oracles}
+
+\begin{frame}
+\frametitle{Definitional Extensions}
+\begin{itemize}
+\item there are \emph{conservative definition principles} for types and constants
+\item conservative means that all theorems that can be proved in extended theory can also be proved in original one
+\item however, such extensions make the theory more comfortable
+\item definitions introduce \alert{no new inconsistencies}
+\item the HOL community has a very strong tradition of a purely definitional approach
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Axiomatic Extensions}
+\begin{itemize}
+\item \alert{axioms} are a different approach
+\item they allow postulating arbitrary properties, \ie extending the logic with arbitrary theorems 
+\item this approach might introduce new inconsistencies
+\item in HOL axioms are very rarely needed
+\item using definitions is often considered more elegant
+\item it is hard to keep track of axioms
+\item use axioms only if you really know what you are doing
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Oracles}
+\begin{itemize}
+\item \alert{oracles} are families of axioms
+\item however, they are used differently than axioms
+\item they are used to enable usage of external tools and knowledge
+\item you might want to use an external automated prover
+\item this external tool acts as an oracle
+\begin{itemize}
+\item it provides answers
+\item it does not explain or justify these answers
+\end{itemize}
+\item you don't know, whether this external tool might be buggy
+\item all theorems proved via it are tagged with a special oracle-tag
+\item tags are propagated
+\item this allows keeping track of everything depending on the correctness of this tool
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Oracles II}
+\begin{itemize}
+\item Common oracle-tags
+\begin{itemize}
+\item \ml{DISK\_THM} --- theorem was written to disk and read again
+\item \ml{HolSatLib} --- proved by MiniSat
+\item \ml{HolSmtLib} --- proved by external SMT solver
+\item \ml{fast\_proof} --- proof was skipped to compile a theory rapidly
+\item \ml{cheat} --- we cheated :-)
+\end{itemize}
+\item \alert{cheating} via \eg the \hol{cheat} tactic means skipping proofs 
+\item it can be helpful during proof development
+\begin{itemize}
+\item test whether some lemmata allow you finishing the proof
+\item skip lengthy but boring cases and focus on critical parts first
+\item experiment with exact form of invariants
+\item \ldots
+\end{itemize}
+\item cheats should be removed reasonable quickly
+\item HOL warns about cheats and skipped proofs
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Pitfalls of Definitional Approach}
+\begin{itemize}
+\item definitions can't introduce new inconsistencies
+\item they force you to state all assumed properties at one location
+\item however, you still need to be careful
+\item Is your definition really expressing what you had in mind ?
+\item Does your formalisation correspond to the real world artefact ?
+\item How can you convince others that this is the case ?
+\item we will discuss methods to deal with this later in this course
+\begin{itemize}
+\item formal sanity
+\item conformance testing
+\item code review
+\item comments, good names, clear coding style
+\item \ldots
+\end{itemize}
+\item this is highly complex and needs a lot of effort in general
+\end{itemize}
+\end{frame}
+
+
+
+\section{Primitive Definition Principles}
+
+\begin{frame}[fragile]
+\frametitle{Specifications}
+\begin{itemize}
+\item HOL allows to introduce new constants with certain properties, provided the
+  existence of such constants has been shown
+\begin{exampleblock}{Specification of \texttt{EVEN} and \texttt{ODD}}
+\begin{semiverbatim}\scriptsize
+> EVEN\_ODD\_EXISTS
+val it = |- ?even odd. even 0 \holAnd{} ~odd 0 \holAnd{} (!n. even (SUC n) <=> odd n) \holAnd{} 
+                       (!n. odd (SUC n) <=> even n)
+
+> val EO\_SPEC = new\_specification ("EO\_SPEC", ["EVEN", "ODD"], EVEN\_ODD\_EXISTS);
+val EO\_SPEC = |- EVEN 0 \holAnd{} ~ODD 0 \holAnd{} (!n. EVEN (SUC n) <=> ODD n) \holAnd{}
+                 (!n. ODD (SUC n) <=> EVEN n)
+\end{semiverbatim}
+\end{exampleblock}
+\item \hol{new\_specification} is a convenience wrapper 
+\begin{itemize}
+\item it uses existential quantification instead of Hilbert's choice
+\item deals with pair syntax
+\item stores resulting definitions in theory
+\end{itemize}
+\item \hol{new\_specification} captures the underlying principle nicely
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Definitions}
+\begin{itemize}
+\item special case: new constant defined by equality
+\begin{exampleblock}{Specification with Equality}
+\begin{semiverbatim}\scriptsize
+> double_EXISTS
+val it =
+|- ?double. (!n. double n = (n + n))
+
+> val double_def = new_specification ("double_def", ["double"], double_EXISTS);
+val double_def =
+   |- !n. double n = n + n
+\end{semiverbatim}
+\end{exampleblock}
+\item there is a specialised methods for such simple definitions 
+\begin{exampleblock}{Non Recursive Definitions}
+\begin{semiverbatim}\scriptsize
+> val DOUBLE_DEF = new_definition ("DOUBLE_DEF", ``DOUBLE n = n + n``)
+val DOUBLE_DEF =
+   |- !n. DOUBLE n = n + n
+\end{semiverbatim}
+\end{exampleblock}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Restrictions for Definitions}
+\begin{itemize}
+\item all variables occurring on right-hand-side (rhs) need to be arguments
+\begin{itemize}
+\item \eg \hol{new\_definition (..., ``F n = n + m``)} fails
+\item \hol{m} is free on rhs
+\end{itemize}
+\item all type variables occurring on rhs need to occur on lhs
+\begin{itemize}
+\item \eg \hol{new\_definition ("IS\_FIN\_TY", \\
+\-\qquad\quad``IS\_FIN\_TY = FINITE (UNIV : 'a set)``)} fails
+\item \hol{IS\_FIN\_TY} would lead to inconsistency
+\item \hol{|- FINITE (UNIV : bool set)}
+\item \hol{|- \holNeg{}FINITE (UNIV : num set)}
+\item \hol {T <=> FINITE (UNIV:bool set) <=> \\ IS\_FIN\_TY <=>\\ FINITE (UNIV:num set) <=> F}
+\item therefore, such definitions can't be allowed
+\end{itemize}
+
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Underspecified Functions}
+\begin{itemize}
+\item function specification do not need to define the function precisely
+\item multiple different functions satisfying one spec are possible
+\item functions resulting from such specs are called \emph{underspecified}
+\item underspecified functions are still total, one just lacks knowledge
+\item one common application: modelling \emph{partial functions}
+\begin{itemize}
+\item functions like \eg \hol{HD} and \hol{TL} are total
+\item they are defined for empty lists
+\item however, it is not specified, which value they have for empty lists
+\item only known: \hol{HD [] = HD []} and \hol{TL [] = TL []}
+\begin{minipage}{.7\textwidth}\medskip
+\begin{semiverbatim}\scriptsize
+val MY_HD_EXISTS = prove (``?hd. !x xs. (hd (x::xs) = x)``, ...);
+val MY_HD_SPEC = 
+  new_specification ("MY_HD_SPEC", ["MY_HD"], MY_HD_EXISTS) 
+\end{semiverbatim}
+\end{minipage}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Primitive Type Definitions}
+\begin{itemize}
+\item HOL allows introducing non-empty subtypes of existing types
+\item a predicate \hol{P : ty -> bool} describes a subset of an existing type \hol{ty}
+\item \hol{ty} may contain type variables
+\item only \emph{non-empty} types are allowed
+\item therefore a non-emptyness proof \hol{ex-thm} of form \hol{?e.\ P e} is needed
+\item \hol{new\_type\_definition (op-name, ex-thm)} then introduces a new type \hol{op-name}
+  specified by \hol{P}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Primitive Type Definitions - Example 1}
+\begin{itemize}
+\item lets try to define a type \hol{dlist} of lists containing no duplicates
+\item predicate \hol{ALL\_DISTINCT : 'a list -> bool} is used to define it
+\item easy to prove theorem \texttt{dlist\_exists}: \hol{|- ?l.\ ALL\_DISTINCT l}
+\item \hol{val dlist\_TY\_DEF = new\_type\_definitions("dlist", dlist\_exists)} defines
+      a new type \ml{'a dlist} and returns a theorem\bigskip
+\begin{semiverbatim}
+|- ?(rep :'a dlist -> 'a list).
+     TYPE_DEFINITION ALL_DISTINCT rep
+\end{semiverbatim}\bigskip
+\item \ml{rep} is a function taking a \hol{'a dlist} to the list representing it
+\begin{itemize}
+\item \hol{rep} is injective
+\item a list satisfies \hol{ALL\_DISTINCT} iff there is a corresponding \hol{dlist}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Primitive Type Definitions - Example 2}
+\begin{itemize}
+\item \hol{define\_new\_type\_bijections} can be used to define bijections between old and new type
+\medskip
+\begin{semiverbatim}\scriptsize
+> \hol{define_new_type_bijections \{name="dlist_tybij", ABS="abs_dlist", 
+    REP="rep_dlist", tyax=\alert{dlist_TY_DEF}\}}
+
+val it =
+   |- (!a. abs_dlist (rep_dlist a) = a) \holAnd{}
+      (!r. ALL_DISTINCT r <=> (rep_dlist (abs_dlist r) = r))
+\end{semiverbatim}\medskip
+\item other useful theorems can be automatically proved by
+\begin{itemize}
+\item \hol{prove\_abs\_fn\_one\_one}
+\item \hol{prove\_abs\_fn\_onto}
+\item \hol{prove\_rep\_fn\_one\_one}
+\item \hol{prove\_rep\_fn\_onto}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Primitive Definition Principles Summary}
+\begin{itemize}
+\item primitive definition principles are easily explained
+\item they lead to conservative extensions
+\item however, they are cumbersome to use
+\item LCF approach allows implementing more convenient definition tools
+\begin{itemize}
+\item \alert{\texttt{Datatype}} package
+\item \alert{\texttt{TFL}} (Total Functional Language) package
+\item \ml{IndDef} (Inductive Definition) package
+\item \ml{quotientLib} Quotient Types Library
+\item ...
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+\section{Functional Programming}
+
+\begin{frame}
+\frametitle{Functional Programming}
+\begin{itemize}
+\item the \hol{Datatype} package allows to define datatypes conveniently
+\item the \hol{TFL} package allows to define (mutually recursive) functions
+\item the \hol{EVAL} conversion allows evaluating those definitions
+\item this gives many HOL developments the feeling of a functional program
+\item there is really a close connection between functional programming and definitions in HOL
+\begin{itemize}
+\item functional programming design principles apply
+\item \hol{EVAL} is a great way to test quickly, whether your definitions are working as intended
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Functional Programming Example}
+
+\begin{semiverbatim}\scriptsize
+> \hol{Datatype `mylist = E | L 'a mylist`} 
+val it = (): unit
+
+> \hol{Define `(mylen E = 0) \holAnd{} (mylen (L x xs) = SUC (mylen xs))`} 
+Definition has been stored under "mylen\_def"
+val it =
+   |- (mylen E = 0) \holAnd{} !x xs. mylen (L x xs) = SUC (mylen xs):
+   thm
+
+> \hol{EVAL ``mylen (L 2 (L 3 (L 1 E)))``}
+val it =
+   |- mylen (L 2 (L 3 (L 1 E))) = 3:
+   thm
+\end{semiverbatim}
+
+\end{frame}
+
+
+\section{Datatype Definitions}
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package}
+\begin{itemize}
+\item the \hol{Datatype} package allows to define SML style datatypes easily
+\item there is support for 
+\begin{itemize}
+\item algebraic datatypes
+\item record types
+\item mutually recursive types
+\item ...
+\end{itemize}
+\item many constants are automatically introduced
+\begin{itemize}
+\item constructors
+\item case-split constant
+\item size function
+\item field-update and accessor functions for records
+\item ...
+\end{itemize}
+\item many theorems are derived and stored in current theory
+\begin{itemize}
+\item injectivity and distinctness of constructors
+\item nchotomy and structural induction theorems
+\item rewrites for case-split, size and record update functions
+\item ...
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example I}
+\begin{block}{Tree Datatype in SML}
+\begin{semiverbatim}\scriptsize
+datatype ('a,'b) btree =   Leaf of 'a
+                         | Node of ('a,'b) btree * 'b * ('a,'b) btree
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Tree Datatype in HOL}
+\begin{semiverbatim}\scriptsize
+Datatype `btree =   Leaf 'a
+                  | Node btree 'b btree`
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Tree Datatype in HOL --- Deprecated Syntax}
+\begin{semiverbatim}\scriptsize
+Hol_datatype `btree =   Leaf of 'a
+                      | Node of btree => 'b => btree`
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example I - Derived Theorems 1}
+\begin{block}{\texttt{btree\_distinct}}
+\begin{semiverbatim}\scriptsize
+|- !a2 a1 a0 a. Leaf a <> Node a0 a1 a2
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{btree\_11}}
+\begin{semiverbatim}\scriptsize
+|- (!a a'. (Leaf a = Leaf a') <=> (a = a')) \holAnd{}
+   (!a0 a1 a2 a0' a1' a2'.
+      (Node a0 a1 a2 = Node a0' a1' a2') <=>
+      (a0 = a0') \holAnd{} (a1 = a1') \holAnd{} (a2 = a2'))
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{btree\_nchotomy}}
+\begin{semiverbatim}\scriptsize
+|- !bb. (?a. bb = Leaf a) \holOr{} (?b b1 b0. bb = Node b b1 b0)
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{btree\_induction}}
+\begin{semiverbatim}\scriptsize
+|- !P. (!a. P (Leaf a)) \holAnd{}
+       (!b b0. P b \holAnd{} P b0 ==> !b1. P (Node b b1 b0)) ==>
+       !b. P b
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example I - Derived Theorems 2}
+
+\begin{block}{\texttt{btree\_size\_def}}
+\begin{semiverbatim}\scriptsize
+|- (!f f1 a. btree_size f f1 (Leaf a) = 1 + f a) \holAnd{}
+   (!f f1 a0 a1 a2.
+     btree_size f f1 (Node a0 a1 a2) =
+     1 + (btree_size f f1 a0 + (f1 a1 + btree_size f f1 a2)))
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{btree\_case\_def}}
+\begin{semiverbatim}\scriptsize
+|- (!a f f1. btree_CASE (Leaf a) f f1 = f a) \holAnd{}
+   (!a0 a1 a2 f f1. btree_CASE (Node a0 a1 a2) f f1 = f1 a0 a1 a2)
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{btree\_case\_cong}}
+\begin{semiverbatim}\scriptsize
+|- !M M' f f1.
+     (M = M') \holAnd{} (!a. (M' = Leaf a) ==> (f a = f' a)) \holAnd{}
+     (!a0 a1 a2.
+        (M' = Node a0 a1 a2) ==> (f1 a0 a1 a2 = f1' a0 a1 a2)) ==>
+     (btree_CASE M f f1 = btree_CASE M' f' f1')
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example II}
+\begin{block}{Enumeration type in SML}
+\begin{semiverbatim}\scriptsize
+datatype my_enum = E1 | E2 | E3
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Enumeration type in HOL}
+\begin{semiverbatim}\scriptsize
+Datatype `my_enum = E1 | E2 | E3`
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example II - Derived Theorems}
+
+\begin{block}{\texttt{my\_enum\_nchotomy}}
+\begin{semiverbatim}\scriptsize
+|- !P. P E1 \holAnd{} P E2 \holAnd{} P E3 ==> !a. P a
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{my\_enum\_distinct}}
+\begin{semiverbatim}\scriptsize
+|- E1 <> E2 \holAnd{} E1 <> E3 \holAnd{} E2 <> E3
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{my\_enum2num\_thm}}
+\begin{semiverbatim}\scriptsize
+|- (my_enum2num E1 = 0) \holAnd{} (my_enum2num E2 = 1) \holAnd{} (my_enum2num E3 = 2)
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{my\_enum2num\_num2my\_enum}}
+\begin{semiverbatim}\scriptsize
+|- !r. r < 3 <=> (my_enum2num (num2my_enum r) = r)
+\end{semiverbatim}
+\end{block}
+
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example III}
+\begin{block}{Record type in SML}
+\begin{semiverbatim}\scriptsize
+type rgb = \{ r : int, g : int, b : int \} 
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Record type in HOL}
+\begin{semiverbatim}\scriptsize
+Datatype `rgb = <| r : num; g : num; b : num |>`
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example III - Derived Theorems}
+
+\begin{block}{\texttt{rgb\_component\_equality}}
+\begin{semiverbatim}\scriptsize
+|- !r1 r2. (r1 = r2) <=> 
+           (r1.r = r2.r) \holAnd{} (r1.g = r2.g) \holAnd{} (r1.b = r2.b)
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{rgb\_nchotomy}}
+\begin{semiverbatim}\scriptsize
+|- !rr. ?n n0 n1. rr = rgb n n0 n1
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{rgb\_r\_fupd}}
+\begin{semiverbatim}\scriptsize
+|- !f n n0 n1. rgb n n0 n1 with r updated_by f = rgb (f n) n0 n1
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{\texttt{rgb\_updates\_eq\_literal}}
+\begin{semiverbatim}\scriptsize
+|- !r n1 n0 n.
+     r with <|r := n1; g := n0; b := n|> = <|r := n1; g := n0; b := n|>
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Example IV}
+\begin{itemize}
+\item nested record types are not allowed
+\item however, mutual recursive types can mitigate this restriction
+\end{itemize}
+
+\begin{block}{Filesystem Datatype in SML}
+\begin{semiverbatim}\scriptsize
+datatype file = Text of string
+              | Dir of \{owner : string ,
+                        files : (string * file) list\}
+\end{semiverbatim}
+\end{block}             
+
+\begin{alertblock}{\textbf{Not Supported} Nested Record Type Example in HOL}
+\begin{semiverbatim}\scriptsize
+Datatype `file = Text string
+               | Dir <| owner : string ;
+                        files : (string # file) list |>`
+\end{semiverbatim}
+\end{alertblock}                  
+
+\begin{block}{Filesystem Datatype - Mutual Recursion in HOL}
+\begin{semiverbatim}\scriptsize
+Datatype `file = Text string
+               | Dir directory
+          ;
+          directory = <| owner : string ;
+                         files : (string # file) list |>`
+\end{semiverbatim}
+\end{block}                   
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - No support for Co-Algebraic Types}
+\begin{itemize}
+\item there is no support for co-algebraic types
+\item the \texttt{Datatype} package could be extended to do so
+\item other systems like Isabelle/HOL provide high-level methods for defining such types
+\end{itemize}
+\begin{block}{Co-algebraic Type Example in SML --- Lazy Lists}
+\begin{semiverbatim}\scriptsize
+datatype 'a lazylist = Nil
+                     | Cons of ('a * (unit -> 'a lazylist))
+\end{semiverbatim}
+\end{block}                   
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Datatype Package - Discussion}
+
+\begin{itemize}
+\item \texttt{Datatype} package allows to define many useful datatypes
+\item however, there are many limitations
+\begin{itemize}
+\item some types cannot be defined in HOL, \eg empty types
+\item some types are not supported, \eg co-algebraic types
+\item there are bugs (currently \eg some trouble with certain mutually recursive definitions)
+\end{itemize}
+\item biggest restrictions in practice (in my opinion and my line of work)
+\begin{itemize}
+\item no support for co-algebraic datatypes
+\item no nested record datatypes
+\end{itemize}
+\item depending on datatype, different sets of useful lemmata are derived
+\item most important ones are added to \hol{TypeBase}
+\begin{itemize}
+\item tools like \hol{Induct\_on}, \hol{Cases\_on} use them
+\item there is support for pattern matching
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\section{Recursive Function Definitions}
+
+\begin{frame}
+\frametitle{Total Functional Language (\texttt{TFL}) package}
+\begin{itemize}
+\item \ml{TFL} package implements support for terminating functional definitions
+\item \hol{Define} defines functions from high-level descriptions
+\item there is support for pattern matching
+\item look and feel is like function definitions in SML
+\item based on \emph{well-founded recursion} principle
+\item \hol{Define} is the most common way for definitions in HOL
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Well-Founded Relations}
+\begin{itemize}
+\item a relation \texttt{R : 'a -> 'a -> bool} is called \emph{well-founded}, iff
+there are no infinite descending chains\\[.5em]
+\hol{wellfounded R = \holNeg{}?f.\ !n.\ R (f (SUC n)) (f n)}
+\bigskip
+\item Example: \texttt{\$< :\ num -> num -> bool} is well-founded
+\item if arguments of recursive calls are smaller according to well-founded relation,
+the recursion terminates
+\item this is the essence of termination proofs
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Well-Founded Recursion}
+\begin{itemize}
+\item a well-founded relation \hol{R} can be used to define recursive functions
+\item this recursion principle is called \hol{WFREC} in HOL
+\item idea of \hol{WFREC}
+\begin{itemize}
+\item if arguments get smaller according to \hol{R}, perform recursive call
+\item otherwise abort and return \hol{ARB}
+\end{itemize}
+\item \hol{WFREC} always defines a function
+\item if all recursive calls indeed decrease according to \hol{R}, the original recursive
+      equations can be derived from the \hol{WFREC} representation
+\item TFL uses this internally
+\item however, this is well-hidden from the user
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{\texttt{Define} - Initial Examples}
+
+\begin{block}{Simple Definitions}
+\begin{semiverbatim}\scriptsize
+> \hol{val DOUBLE_def = Define `DOUBLE n = n + n`}
+val DOUBLE_def =
+   |- !n. DOUBLE n = n + n:
+   thm
+
+> \hol{val MY_LENGTH_def = Define `(MY_LENGTH [] = 0) \holAnd{} 
+                              (MY_LENGTH (x::xs) = SUC (MY_LENGTH xs))`}
+val MY_LENGTH_def =
+   |- (MY_LENGTH [] = 0) \holAnd{} !x xs. MY_LENGTH (x::xs) = SUC (MY_LENGTH xs):
+   thm
+
+> \hol{val MY_APPEND_def = Define `(MY_APPEND [] ys = ys) \holAnd{} 
+                              (MY_APPEND (x::xs) ys = x :: (MY_APPEND xs ys))`}
+val MY_APPEND_def =
+   |- (!ys. MY_APPEND [] ys = ys) \holAnd{}
+      (!x xs ys. MY_APPEND (x::xs) ys = x::MY_APPEND xs ys):
+   thm
+\end{semiverbatim}
+\end{block}             
+\end{frame}
+
+
+\begin{frame}
+\frametitle{\texttt{Define} discussion}
+\begin{itemize}
+\item \hol{Define} feels like a function definition in HOL
+\item it can be used to define "terminating" recursive functions
+\item \hol{Define} is implemented by a large, non-trivial piece of SML code
+\item it uses many heuristics
+\item outcome of \hol{Define} sometimes hard to predict
+\item the input descriptions are only hints
+\begin{itemize}
+\item the produced function and the definitional theorem might be different
+\item in simple examples, quantifiers added
+\item pattern compilation takes place
+\item earlier ``conjuncts'' have precedence
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{\texttt{Define} - More Examples}
+
+\begin{block}{}
+\begin{semiverbatim}\scriptsize
+> \hol{val MY_HD_def = Define `MY_HD (x :: xs) = x`}
+val MY_HD_def = |- !x xs. MY_HD (x::xs) = x : thm
+
+> \hol{val IS_SORTED_def = Define `
+     (IS_SORTED (x1 :: x2 :: xs) = ((x1 < x2) \holAnd{} (IS_SORTED (x2::xs)))) \holAnd{}
+     (IS_SORTED _ = T)`}
+val IS_SORTED_def =
+   |- (!xs x2 x1. IS_SORTED (x1::x2::xs) <=> x1 < x2 \holAnd{} IS_SORTED (x2::xs)) \holAnd{}
+      (IS_SORTED [] <=> T) \holAnd{} (!v. IS_SORTED [v] <=> T)
+
+> \hol{val EVEN_def = Define `(EVEN 0 = T) \holAnd{} (ODD 0 = F) \holAnd{}
+                         (EVEN (SUC n) = ODD n) \holAnd{} (ODD (SUC n) = EVEN n)`}
+val EVEN_def =
+   |- (EVEN 0 <=> T) \holAnd{} (ODD 0 <=> F) \holAnd{} (!n. EVEN (SUC n) <=> ODD n) \holAnd{}
+      (!n. ODD (SUC n) <=> EVEN n) : thm
+
+> \hol{val ZIP_def = Define `(ZIP (x::xs) (y::ys) = (x,y)::(ZIP xs ys)) \holAnd{}
+                        (ZIP \_ \_ = [])`}
+val ZIP_def =
+   |- (!ys y xs x. ZIP (x::xs) (y::ys) = (x,y)::ZIP xs ys) \holAnd{}
+      (!v1. ZIP [] v1 = []) \holAnd{} (!v4 v3. ZIP (v3::v4) [] = []) : thm
+\end{semiverbatim}
+\end{block}             
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Primitive Definitions}
+\begin{itemize}
+\item \hol{Define} introduces (if needed) the function using \hol{WFREC}
+\item intended definition derived as a theorem
+\item the theorems are stored in current theory
+\item usually, one never needs to look at it
+\end{itemize}
+\begin{block}{Examples}
+\begin{semiverbatim}\scriptsize
+val IS_SORTED_primitive_def =
+|- IS_SORTED =
+   WFREC (@R.\ WF R \holAnd{} !x1 xs x2. R (x2::xs) (x1::x2::xs))
+     (\textbsl{}IS_SORTED a.
+        case a of
+          [] => I T
+        | [x1] => I T
+        | x1::x2::xs => I (x1 < x2 \holAnd{} IS_SORTED (x2::xs)))
+
+|- !R M. WF R ==> !x. WFREC R M x = M (RESTRICT (WFREC R M) R x) x
+|- !f R x. RESTRICT f R x = (\textbsl{}y. if R y x then f y else ARB)
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Induction Theorems}
+\begin{itemize}
+\item \hol{Define} automatically defines induction theorems
+\item these theorems are stored in current theory with suffix \hol{ind}
+\item use \hol{DB.fetch "-" "something\_ind"} to retrieve them
+\item these induction theorems are useful to reason about corresponding recursive functions
+\end{itemize}
+\begin{block}{Example}
+\begin{semiverbatim}\scriptsize
+val IS_SORTED_ind = |- !P.
+     ((!x1 x2 xs. P (x2::xs) ==> P (x1::x2::xs)) \holAnd{} 
+      P [] \holAnd{} 
+      (!v. P [v])) ==>
+     !v. P v
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{\texttt{Define} failing}
+\begin{itemize}
+\item \hol{Define} might fail for various reasons to define a function
+\begin{itemize}
+\item such a function cannot be defined in HOL
+\item such a function can be defined, but not via the methods used by TFL
+\item TFL can define such a function, but its heuristics are too weak and user guidance is required
+\item there is a bug :-)
+\end{itemize}
+\item \emph{termination} is an important concept for \hol{Define}
+\item it is easy to misunderstand termination in the context of HOL
+\item we need to understand what is meant by termination 
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Termination in HOL}
+\begin{itemize}
+\item in SML it is natural to talk about termination of functions
+\item in the HOL logic there is no concept of execution
+\item thus, there is no concept of termination in HOL
+\begin{minipage}{.8\textwidth}
+\begin{exampleblock}{3 characterisations of a function \texttt{f :\ num -> num}}
+\begin{itemize}
+\item \hol{|- !n.\ f n = 0}
+\item \hol{|- (f 0 = 0) \holAnd{} !n.\ (f (SUC n) = f n)}
+\item \hol{|- (f 0 = 0) \holAnd{} !n.\ (f n = f (SUC n))}
+\end{itemize}
+Is \hol{f} terminating? All 3 theorems are equivalent.
+\end{exampleblock}
+\end{minipage}\bigskip
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Termination in HOL II}
+\begin{itemize}
+\item it is useful to think in terms of termination
+\item the TFL package implements heuristics to define functions that would terminate in SML
+\item the TFL package uses well-founded recursion
+\item the required well-founded relation corresponds to a termination proof
+\item therefore, it is very natural to think of \hol{Define} searching a termination proof
+\item important: this is the idea behind this function definition package, not a property of HOL
+\end{itemize}
+\bottomstatement{\alert{HOL is not limited to "terminating" functions}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Termination in HOL III}
+\begin{itemize}
+\item one can define "non-terminating" functions in HOL
+\item however, one cannot do so (easily) with \hol{Define}
+\end{itemize}
+\begin{exampleblock}{Definition of \texttt{WHILE} in HOL}
+\begin{semiverbatim}\scriptsize
+\emph{|- !P g x. WHILE P g x = if P x then WHILE P g (g x) else x}
+\end{semiverbatim}
+\end{exampleblock}
+
+
+\begin{exampleblock}{Execution Order}\scriptsize
+There is no "execution order". One can easily define a complicated constant function:
+\vspace{-.7em}
+\begin{semiverbatim}
+\emph{(myk : num -> num) (n:num) = (let x = myk (n+1) in 0)}
+\end{semiverbatim}
+\end{exampleblock}
+
+\begin{alertblock}{Unsound Definitions}\scriptsize
+A function \hol{f : num -> num} with the following property cannot be defined in HOL unless HOL has an inconsistancy:
+\begin{semiverbatim}
+\hol{!n. f n = ((f n) + 1)}
+\end{semiverbatim}
+Such a function would allow to prove \hol{0 = 1}.
+\end{alertblock}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Manual Termination Proofs I}
+\begin{itemize}
+\item TFL uses various heuristics to find a well-founded relation
+\item however, these heuristics may not be strong enough
+\item in such cases the user can provide a well-founded relation manually
+\item the most common well-founded relations are \emph{measures}
+\item measures map values to natural numbers and use the less relation\\
+\hol{|- !(\alert{f:'a -> num}) x y.\ measure f x y <=> (f x < f y)}
+\item all measures are well-founded: \hol{|- !f.\ WF (measure f)} 
+\item moreover, existing well-founded relations can be combined
+\begin{itemize}
+\item lexicographic order \hol{LEX}
+\item list lexicographic order \hol{LLEX}
+\item \ldots
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Manual Termination Proofs II}
+\begin{itemize}
+\item if \hol{Define} fails to find a termination proof, \hol{Hol\_defn} can be used
+\item \hol{Hol\_defn} defers termination proofs
+\item it derives termination conditions and
+  sets up the function definitions
+\item all results are packaged as a value of type \hol{defn}
+\item after calling \hol{Hol\_defn} the defined function(s) can be used
+\item however, the intended definition theorem has not been derived yet
+\item to derive it, one needs to 
+\begin{itemize}
+\item provide a well-founded relation
+\item show that termination conditions respect that relation
+\end{itemize}
+\item \hol{Defn.tprove} and \hol{Defn.tgoal} are intended for this
+\item proofs usually start by providing relation via tactic \hol{WF\_REL\_TAC}
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Manual Termination Proof Example 1}
+\begin{semiverbatim}\scriptsize
+> \hol{val qsort_defn = Hol_defn "qsort" `
+  (qsort ord [] = []) \holAnd{}
+  (qsort ord (x::rst) =
+     (qsort ord (FILTER (\$\holNeg{} o ord x) rst)) ++
+     [x] ++ 
+     (qsort ord (FILTER (ord x) rst)))`}
+
+val qsort_defn = HOL function definition (recursive)
+
+Equation(s) :
+ [...] |- qsort ord [] = []
+ [...] |- qsort ord (x::rst) =
+            qsort ord (FILTER ($\holNeg{} o ord x) rst) ++ [x] ++
+            qsort ord (FILTER (ord x) rst)
+
+Induction : ...
+
+Termination conditions :
+  0. !rst x ord. R (ord,FILTER (ord x) rst) (ord,x::rst)
+  1. !rst x ord. R (ord,FILTER ($\holNeg{} o ord x) rst) (ord,x::rst)
+  2. WF R
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Manual Termination Proof Example 2}
+\begin{semiverbatim}\scriptsize
+> \hol{Defn.tgoal qsort_defn}
+
+Initial goal:
+
+?R.
+  WF R \holAnd{} 
+  (!rst x ord. R (ord,FILTER (ord x)      rst) (ord,x::rst)) \holAnd{}
+  (!rst x ord. R (ord,FILTER (\$\holNeg{} o ord x) rst) (ord,x::rst))
+
+\pause
+> \hol{e (WF_REL_TAC `measure (\textbsl{}(\_, l).\ LENGTH l)`)}
+
+1 subgoal :
+
+(!rst x ord. LENGTH (FILTER (ord x) rst) < LENGTH (x::rst)) \holAnd{}
+(!rst x ord. LENGTH (FILTER (\textbsl{}x'.\ \holNeg{}ord x x') rst) < LENGTH (x::rst))
+
+> \hol{...}
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Manual Termination Proof Example 3}
+\begin{semiverbatim}\scriptsize
+> \hol{val (qsort_def, qsort_ind) = 
+  Defn.tprove (qsort_defn, 
+    WF_REL_TAC `measure (\textbsl{}(\_, l).\ LENGTH l)`) >> ...)}
+
+val qsort_def =   
+|- (qsort ord [] = []) \holAnd{}
+   (qsort ord (x::rst) =
+    qsort ord (FILTER ($~ o ord x) rst) ++ [x] ++
+    qsort ord (FILTER (ord x) rst))
+
+val qsort_ind =
+|- !P. (!ord. P ord []) \holAnd{}
+       (!ord x rst.
+          P ord (FILTER (ord x) rst) \holAnd{}
+          P ord (FILTER ($~ o ord x) rst) ==>
+          P ord (x::rst)) ==>
+       !v v1. P v v1
+\end{semiverbatim}
+\end{frame}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

@@ -1,0 +1,145 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+
+\title{Background Questionaire}
+
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part} Background Questionaire
+\end{center}
+\bigskip
+
+
+Please try to answer the following questions alone and without using
+any external aids. If you have trouble, just skip a question instead
+of guessing and thinking very hard. Try not to write lengthy answers,
+often bullet-points are enough. This is no exam, please hand in the
+results \emph{anonymously}.  The results are used only to adapt the
+\emph{Interactive Theorem Proving} course to the background and
+interests of the audience.
+
+
+\section{Functional Programming}
+
+\begin{enumerate}
+\item Consider the following functional program on lists.
+\begin{verbatim}
+fun SNOC x [] = [x]
+  | SNOC x (y::ys) = y::(SNOC x ys) 
+\end{verbatim}
+Please answer the following questions:
+\begin{itemize}
+\item What is the result of \texttt{SNOC 5 [7,3,2]}? 
+\item Describe informally (and very briefly) what the function \texttt{SNOC} does.
+\end{itemize}
+
+\item Write a functional program \texttt{APPEND} that appends two lists. 
+Try to use SML notation. 
+\texttt{APPEND} should satisfy the following example behaviours
+\begin{itemize}
+\item \texttt{APPEND [1,2,3] [4,5] = [1,2,3,4,5]}
+\item \texttt{APPEND [] [1] = [1]}
+\end{itemize}
+
+
+\item What is \emph{tail-recursion} and why is it important for functional programming?
+
+\item Write a tail-recursive version of \texttt{APPEND}.
+ 
+\end{enumerate}
+
+
+\section{Induction Proofs}
+
+\begin{enumerate}
+\item Prove that the following method to calculate the sum of the first $n$ natural numbers is correct (notice $0 \notin \mathbb{N}$, i.\,e.\ $\mathbb{N} = \{1, 2, 3, \ldots\}$):
+    \[\forall n \in \mathbb{N}.\ \sum_{1 \leq i \leq n} i = \frac{n * (n+1)}{2}\]
+\item Prove that \texttt{$\forall$x l.\ LENGTH (SNOC x l) = LENGTH l + 1} holds for the function \texttt{SNOC} given above. You can use arithmetic facts and the
+   following properties of \texttt{LENGTH}:
+\begin{itemize}
+\item \texttt{LENGTH [] = 0}
+\item \texttt{$\forall$x xs.\ LENGTH (x ::\ xs) = LENGTH xs + 1}
+\end{itemize}
+
+\item Prove that \texttt{APPEND} is associative (hint: via induction). You can use the following
+      properties of \texttt{APPEND}. Use the notation \texttt{l1 ++ l2} for \texttt{APPEND l1 l2}.
+
+\begin{itemize}
+\item \texttt{$\forall$l.\ [] ++ l = l}
+\item \texttt{$\forall$l x xs.\ (x ::\ xs) ++ l = x ::\ (xs ++ l)}
+\end{itemize}
+
+\item Which induction principles do you know? Which ones did you use above?
+
+\end{enumerate}
+
+
+\section{Logic}
+
+\begin{enumerate}
+\item Explain briefly what's wrong with the following reasoning:
+``No cat has two tails. A cat has one more tail than no cat. Therefore, a cat has three tails.''
+
+\item It is well known that in ancient times (a) all \emph{Spartans} were \emph{brave} and (b) all \emph{Athenians} were \emph{wise}.
+Spartans and Athenians always fought with each other. So there was (c) no dual citizenship.
+Once upon a time, 3 Greek philosophers met: Diogenes, Platon and Euklid. In contrast to their
+famous namesakes, not much is known about them. We know however, that
+(d) they all came from Sparta or Athens. 
+During their meeting, the 3 philosophers started to argue and finally insulted each other.
+Being philosophers they were very careful not to tell a lie, though.
+A few fragments of what they said have come to us through the centuries:
+
+\begin{enumerate}
+\item[(e)] Euklid: ``If Platon is from Sparta, then Diogenes is a coward.''
+\item[(f)] Platon: ``Diogenes is a coward, provided Euklid is from Sparta.''
+\item[(g)] Platon: ``If Diogenes is from Athens, then Euklid is a coward.''
+\item[(h)] Diogenes: ``If Platon is from Athens, then Euklid is a moron.''
+\end{enumerate}
+
+Can you reconstruct from which town each of these philosophers came?
+\begin{enumerate}
+\item Formalise the relevant parts of the text above in first order logic. Model \emph{is coward} as \emph{is not brave} and \emph{is moron} as \emph{is not wise}.
+\item Using the proof method of \emph{resolution} show that Platon is from Sparta. If you
+  don't know the resolution method, try to show it using some other method.
+\item Which town did Euklid come from?
+\end{enumerate}
+
+\item Let the function \textit{myst} for all \textit{R} of type $\alpha \to \alpha \to \textit{bool}$ be given by 
+
+\[
+  \textit{myst}(\textit{R}) = \lambda a\, b.\ \forall Q. \left(
+\begin{array}{cr}
+      \forall x.\ Q\, x\, x\ & \wedge \\
+      \forall x\,y.\ R\,x\,y\ \Longrightarrow\ Q\, x\, y\ & \wedge \\
+      \forall x\,y\,z.\ (Q\,x\,y\ \wedge\  Q\,y\,z)\ \Longrightarrow\ Q\,x\,z 
+\end{array}
+\right)  \Longrightarrow Q\,a\,b
+\] 
+\begin{enumerate}
+\item Which type does \textit{myst} have?
+\item What concept does the type $\alpha \to \alpha \to \textit{bool}$ represent?
+\item Translate the formula in English using as high level concepts as possible. 
+\item What concept does the function \textit{myst} define?
+\end{enumerate}
+\end{enumerate}
+
+\section{General}
+
+Do you have any comments or suggestions? Is there something that you
+believe is relevant for selecting and prioritising topics of the
+Interactive Theorem Proving course. I'm happy if you don't write
+anything here. 
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

@@ -1,0 +1,17 @@
+The 'Interactive Theorem Proving Course'
+by Thomas Tuerk (http://www.thomas-tuerk.de/en)
+is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License.
+To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/4.0/.
+
+Except where otherwise noted, the license covers all the course
+material, including the slides, the exercise sheets and the
+questionnaires.
+
+One exception are the CC-logos in subdirectory 'lectures/images/cc',
+which are covered by the Creative Commons Trademark Policy
+(https://creativecommons.org/policies).
+
+The Latex sources of the material as well as a few technical aids
+(like Makefiles) are also provided. Please use these sources as you
+see fit. However, if you use significant parts of the source files,
+please publish your modified sources as well.

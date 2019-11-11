@@ -1,0 +1,564 @@
+\part{Backward Proofs}
+
+\section{Motivation}
+\frame[plain]{\partpage}
+
+\begin{frame}[fragile]
+\frametitle{Motivation I}
+\begin{itemize}
+\item let's prove \hol{!A B. A \holAnd{} B <=> B \holAnd{} A}
+\begin{semiverbatim}
+\scriptsize
+\mlcomment{Show |- A \holAnd{} B ==> B \holAnd{} A}
+val thm1a = ASSUME ``A \holAnd{} B``;
+val thm1b = CONJ (CONJUNCT2 thm1a) (CONJUNCT1 thm1a);
+val thm1  = DISCH ``A \holAnd{} B`` thm1b
+
+\mlcomment{Show |- B \holAnd{} A ==> A \holAnd{} B}
+val thm2a = ASSUME ``B \holAnd{} A``;
+val thm2b = CONJ (CONJUNCT2 thm2a) (CONJUNCT1 thm2a);
+val thm2  = DISCH ``B \holAnd{} A`` thm2b
+
+\mlcomment{Combine to get |- A \holAnd{} B <=> B \holAnd{} A}
+val thm3  = IMP_ANTISYM_RULE thm1 thm2
+
+\mlcomment{Add quantifiers}
+val thm4  = GENL [``A:bool``, ``B:bool``] thm3
+\end{semiverbatim}
+\bigskip
+\item this is how you write down a proof
+\item for finding a proof it is however often useful to think \emph{backwards}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Motivation II - thinking backwards}
+\begin{itemize}
+\item we want to prove \begin{itemize}
+  \item \hol{!A B. A \holAnd{} B <=> B \holAnd{} A}
+  \end{itemize}
+\item all-quantifiers can easily be added later, so let's get rid of them \\
+      \begin{itemize}
+      \item \hol{A \holAnd{} B <=> B \holAnd{} A}
+      \end{itemize}
+\item now we have an equivalence, let's show 2 implications \\
+      \begin{itemize}
+      \item \hol{A \holAnd{} B ==> B \holAnd{} A}
+      \item \hol{B \holAnd{} A ==> A \holAnd{} B}
+      \end{itemize}
+\item we have an implication, so we can use the precondition as an assumption \\
+      \begin{itemize}
+      \item using \hol{A \holAnd{} B} show \hol{B \holAnd{} A}
+      \item \hol{A \holAnd{} B ==> B \holAnd{} A}
+      \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motivation III - thinking backwards}
+\begin{itemize}
+\item we have a conjunction as assumption, let's split it 
+\begin{itemize}
+\item using \hol{A} and \hol{B} show \hol{B \holAnd{} A}
+      \item \hol{A \holAnd{} B ==> B \holAnd{} A}
+\end{itemize}
+\item we have to show a conjunction, so let's show both parts
+\begin{itemize}
+  \item using \hol{A} and \hol{B} show \hol{B}
+  \item using \hol{A} and \hol{B} show \hol{A}
+      \item \hol{A \holAnd{} B ==> B \holAnd{} A}
+\end{itemize}
+\item the first two proof obligations are trivial
+\begin{itemize}
+      \item \hol{A \holAnd{} B ==> B \holAnd{} A}
+\end{itemize}
+\item \ldots
+\item we are done
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motivation IV}
+\begin{itemize}
+\item common practise
+\begin{itemize}
+\item think backwards to find proof
+\item write found proof down in forward style
+\end{itemize}
+\item often switch between backward and forward style within a proof\\
+Example: induction proof
+\begin{itemize}
+\item backward step: induct on \ldots
+\item forward steps: prove base case and induction case
+\end{itemize}
+\item whether to use forward or backward proofs depend on
+\begin{itemize}
+\item support by the interactive theorem prover you use
+\begin{itemize}
+\item HOL~4 and close family: emphasis on backward proof
+\item Isabelle/HOL: emphasis on forward proof
+\item Coq : emphasis on backward proof
+\end{itemize}
+\item your way of thinking
+\item the theorem you try to prove
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL Implementation of Backward Proofs}
+\begin{itemize}
+\item in HOL
+\begin{itemize}
+\item proof tactics / backward proofs used for most user-level proofs
+\item forward proofs used usually for writing automation
+\end{itemize}
+\item backward proofs are implemented by \emph{tactics} in HOL
+\begin{itemize}
+\item decomposition into subgoals implemented in SML
+\item SML datastructures used to keep track of all open subgoals
+\item forward proof used to construct theorems
+\end{itemize}
+\item to understand backward proofs in HOL we need to look at
+\begin{itemize}
+\item \ml{goal} --- SML datatype for proof obligations
+\item \ml{goalStack} --- library for keeping track of goals
+\item \ml{tactic} --- SML type for functions performing backward proofs
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\section{Backward Proofs}
+
+\begin{frame}
+\frametitle{Goals}
+\begin{itemize}
+\item goals represent proof obligations, \ie theorems we need/want to prove
+\item the SML type \ml{goal} is an abbreviation for \ml{term list * term}
+\item the goal \ml{([asm\_1, ..., asm\_n], c)} records that we need/want to prove the theorem
+  \ml{\{asm\_1, ..., asm\_n\} |- c}
+\end{itemize}
+
+\begin{exampleblock}{Example Goals}
+\begin{tabular}{ll}
+\textbf{Goal} & \textbf{Theorem} \\
+\ml{([``A``, ``B``], ``A \holAnd{} B``)} & \ml{\{A, B\} |- A \holAnd{} B} \\ 
+\ml{([``B``, ``A``], ``A \holAnd{} B``)} & \ml{\{A, B\} |- A \holAnd{} B} \\ 
+\ml{([``B \holAnd{} A``], ``A \holAnd{} B``)} & \ml{\{B \holAnd{} A\} |- A \holAnd{} B} \\ 
+\ml{([], ``(B \holAnd{} A) ==> (A \holAnd{} B)``)} & \ml{|- (B \holAnd{} A) ==> (A \holAnd{} B)} \\ 
+\end{tabular}
+\end{exampleblock}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Tactics}
+\begin{itemize}
+\item the SML type \ml{tactic} is an abbreviation for\\ the type \ml{goal -> goal list * validation}
+\item \ml{validation} is an abbreviation for \ml{thm list -> thm}
+\item given a goal, a tactic
+\begin{itemize}
+\item decides into which subgoals to decompose the goal
+\item returns this list of subgoals
+\item returns a validation that 
+\begin{itemize}
+\item given a list of theorems for the computed subgoals
+\item produces a theorem for the original goal
+\end{itemize} 
+\end{itemize}
+\item special case: empty list of subgoals
+\begin{itemize}
+\item the validation (given \ml{[]}) needs to produce a theorem for the goal
+\end{itemize}
+\item notice: a tactic might be invalid
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactic Example --- \ml{CONJ\_TAC}}
+\begin{center}
+$\inferrule*[right={CONJ}]{\Gamma \entails p\\\Delta \entails q}{\Gamma \cup \Delta \entails p\ \wedge\ q}\qquad\qquad
+\inferrule*{\texttt{t} \equiv \texttt{conj1 \holAnd{} conj2}\\\\
+  \texttt{asl} \entails \texttt{conj1}\\\texttt{asl} \entails \texttt{conj2}}
+  {\texttt{asl} \entails \texttt{t}}$
+\end{center}
+\begin{semiverbatim}
+\small
+val CONJ_TAC: tactic = fn (asl, t) =>
+   let
+      val (conj1, conj2) = dest_conj t
+   in
+      ([(asl, conj1), (asl, conj2)],
+       fn [th1, th2] => CONJ th1 th2 | _ => raise Match)
+   end
+   handle HOL_ERR _ => raise ERR "CONJ_TAC" ""
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactic Example --- \ml{EQ\_TAC}}
+\begin{center}
+$\inferrule*[right=IMP\_ANTISYM\_RULE]{\Gamma \entails p \Longrightarrow q\\\\\Delta \entails q \Longrightarrow p}{\Gamma \cup \Delta \entails p = q}
+\qquad\qquad
+\inferrule*{\texttt{t} \equiv \texttt{lhs = rhs}\\\\
+  \texttt{asl} \entails \texttt{lhs ==> rhs}\\\\
+  \texttt{asl} \entails \texttt{rhs ==> lhs}}
+  {\texttt{asl} \entails \texttt{t}}$
+\end{center}
+\begin{semiverbatim}
+\small
+val EQ_TAC: tactic = fn (asl, t) =>
+   let
+      val (lhs, rhs) = dest_eq t
+   in
+      ([(asl, mk_imp (lhs, rhs)), (asl, mk_imp (rhs, lhs))],
+       fn [th1, th2] => IMP_ANTISYM_RULE th1 th2 
+        | _          => raise Match)
+   end
+   handle HOL_ERR _ => raise ERR "EQ_TAC" ""
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{proofManagerLib / goalStack}
+\begin{itemize}
+\item the \ml{proofManagerLib} keeps track of open goals
+\item it uses \ml{goalStack} internally
+\item important commands
+\begin{itemize}
+\item \emph{g} --- set up new goal
+\item \emph{e} --- expand a tactic
+\item \emph{p} --- print the current status
+\item \emph{top\_thm} --- get the proved thm at the end
+\end{itemize}  
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example I}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+-
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+g `!A B. A \holAnd{} B <=> B \holAnd{} A`;
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+Initial goal:
+
+!A B. A \holAnd{} B <=> B \holAnd{} A
+
+: proof
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example II}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+Initial goal:
+
+!A B. A \holAnd{} B <=> B \holAnd{} A
+
+: proof
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+e GEN_TAC;
+e GEN_TAC;
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+A \holAnd{} B <=> B \holAnd{} A
+
+: proof
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example III}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+A \holAnd{} B <=> B \holAnd{} A
+
+: proof
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+e EQ_TAC;
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+B \holAnd{} A ==> A \holAnd{} B
+
+A \holAnd{} B ==> B \holAnd{} A 
+
+: proof
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example IV}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+B \holAnd{} A ==> A \holAnd{} B
+
+A \holAnd{} B ==> B \holAnd{} A : proof
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+e STRIP_TAC;
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+B \holAnd{} A
+------------------------------------
+  0.  A
+  1.  B
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example V}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+\scriptsize{}B \holAnd{} A
+------------------------------------
+  0.  A
+  1.  B
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+\scriptsize{}e CONJ_TAC;
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+\scriptsize{}A
+------------------------------------
+  0.  A
+  1.  B
+
+B
+------------------------------------
+  0.  A
+  1.  B
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example VI}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+\scriptsize{}A
+------------------------------------
+  0.  A
+  1.  B
+
+B
+------------------------------------
+  0.  A
+  1.  B
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+\scriptsize{}e (ACCEPT_TAC (ASSUME ``B:bool``));
+e (ACCEPT_TAC (ASSUME ``A:bool``));
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+\scriptsize{}B \holAnd{} A ==> A \holAnd{} B
+
+: proof
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example VII}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+\scriptsize{}B \holAnd{} A ==> A \holAnd{} B
+
+: proof
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+\scriptsize{}e STRIP_TAC;
+e (ASM_REWRITE_TAC[]);
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{New Goalstack}
+\begin{semiverbatim}
+\scriptsize{}Initial goal proved.
+|- !A B. A \holAnd{} B <=> B \holAnd{} A:
+   proof
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example VIII}
+
+\begin{block}{Previous Goalstack}
+\begin{semiverbatim}
+\scriptsize{}Initial goal proved.
+|- !A B. A \holAnd{} B <=> B \holAnd{} A:
+   proof
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{User Action}
+\begin{semiverbatim}
+\scriptsize{}val thm = top_thm();
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Result}
+\begin{semiverbatim}
+\scriptsize{}val thm =
+   |- !A B. A \holAnd{} B <=> B \holAnd{} A:
+   thm
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example IX}
+
+\begin{block}{Combined Tactic}
+\begin{semiverbatim}
+\scriptsize{}val thm = prove (``!A B. A \holAnd{} B <=> B \holAnd{} A``,
+  GEN_TAC >> GEN_TAC >>
+  EQ_TAC >| [
+    STRIP_TAC >>
+    STRIP_TAC >| [
+      ACCEPT_TAC (ASSUME ``B:bool``),
+      ACCEPT_TAC (ASSUME ``A:bool``)
+    ],
+
+    STRIP_TAC >>
+    ASM_REWRITE_TAC[]
+  ]);
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Result}
+\begin{semiverbatim}
+\scriptsize{}val thm =
+   |- !A B. A \holAnd{} B <=> B \holAnd{} A:
+   thm
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactic Proof Example X}
+
+\begin{block}{Cleaned-up Tactic}
+\begin{semiverbatim}
+\scriptsize{}val thm = prove (``!A B. A \holAnd{} B <=> B \holAnd{} A``,
+  REPEAT GEN_TAC >>
+  EQ_TAC >> (
+    REPEAT STRIP_TAC >>
+    ASM_REWRITE_TAC []
+  ));
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Result}
+\begin{semiverbatim}
+\scriptsize{}val thm =
+   |- !A B. A \holAnd{} B <=> B \holAnd{} A:
+   thm
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+\section{General Discussion}
+
+\begin{frame}
+\frametitle{Summary Backward Proofs}
+\begin{itemize}
+\item in HOL most user-level proofs are tactic-based
+\begin{itemize}
+\item automation often written in forward style
+\item low-level, basic proofs written in forward style
+\item nearly everything else is written in backward (tactic) style
+\end{itemize}
+\item there are \emph{many} different tactics
+\item in the lecture only the most basic ones will be discussed
+\item \alert{you need to learn about tactics on your own}
+\begin{itemize}
+\item good starting point: \texttt{Quick} manual
+\item learning finer points takes a lot of time
+\item exercises require you to read up on tactics
+\end{itemize}
+\item often there are many ways to prove a statement, which tactics to use depends on
+\begin{itemize}
+\item personal way of thinking
+\item personal style and preferences
+\item maintainability, clarity, elegance, robustness
+\item \ldots
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

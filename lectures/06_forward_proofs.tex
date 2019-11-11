@@ -1,0 +1,419 @@
+\part{Forward Proofs}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Kernel too detailed}
+\begin{itemize}
+\item we already discussed the HOL Logic
+\item the kernel itself does not even contain basic logic operators
+\item usually one uses a much higher level of abstraction
+\begin{itemize}
+\item many operations and datatypes are defined
+\item high-level derived inference rules are used
+\end{itemize}
+\item let's now look at this more common abstraction level
+\end{itemize}
+\end{frame}
+
+
+\section{Term Syntax}
+
+\begin{frame}
+\frametitle{Common Terms and Types}
+
+\begin{tabular}{lcc}
+& \emph{Unicode} & \emph{ASCII} \\
+type vars & \hol{$\alpha$}, \hol{$\beta$}, \ldots & \hol{'a}, \hol{'b}, \ldots \\ 
+type annotated term & \hol{term:type}  & \hol{term:type} \\ 
+true & \hol{T} & \hol{T} \\
+false & \hol{F} & \hol{F} \\
+negation & \hol{$\neg$b} & \hol{\holNeg{}b} \\
+conjunction & \hol{b1\ $\wedge$\ b2} & \hol{b1 \holAnd{} b2} \\
+disjunction & \hol{b1\ $\vee$\ b2} & \hol{b1 \holOr{} b2} \\
+implication & \hol{b1\ $\Longrightarrow$\ b2} & \hol{b1 \holImp{} b2} \\ 
+equivalence & \hol{b1\ $\Longleftrightarrow$\ b2} & \hol{b1 \holEquiv{} b2} \\
+disequation & \hol{v1\ $\neq$\ v2} & \hol{v1 <> v2} \\
+all-quantification & \hol{$\forall$x.\ P x} & \hol{!x.\ P x} \\
+existential quantification & \hol{$\exists$x.\ P x} & \hol{?x.\ P x} \\
+Hilbert's choice operator & \hol{@x.\ P x} & \hol{@x.\ P x}
+\end{tabular}
+\bigskip
+
+There are similar restrictions to constant and variable names as in SML.\\
+HOL specific: don't start variable names with an underscore
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Syntax conventions}
+\begin{itemize}
+\item common function syntax
+\begin{itemize}
+\item prefix notation, \eg \hol{SUC x}
+\item infix notation, \eg \hol{x + y}
+\item quantifier notation, \eg \hol{$\forall$x.\ P x} means \hol{($\forall$)\ ($\lambda$x.\ P x)}
+\end{itemize}
+\item infix and quantifier notation can be turned into prefix notation \\
+      Example: \hol{(+)\ x\ y} and \hol{\$+\ x\ y} are the same as \hol{x + y}
+\item quantifiers of the same type don't need to be repeated \\
+   Example:\ 
+   \hol{$\forall$x\ y.\ P\ x\ y} is short for
+   \hol{$\forall$x.\ $\forall$y.\ P\ x\ y}
+\item there is special syntax for some functions\\
+   Example:\ 
+   \hol{if c then v1 else v2} is nice syntax for
+   \hol{COND c v1 v2}
+\item associative infix operators are usually right-associative\\
+   Example:\ 
+   \hol{b1 \holAnd{} b2 \holAnd{} b3} is parsed as
+   \hol{b1 \holAnd{} (b2 \holAnd{} b3)}
+\end{itemize}
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Creating Terms}
+
+\begin{block}{Term Parser}
+Use special quotation provided by \texttt{unquote}.
+\end{block}
+
+\begin{alertblock}{Operator Precedence}
+It is easy to misjudge the binding strength of certain operators. Therefore use plenty of parenthesis.
+\end{alertblock}
+
+\begin{block}{Use Syntax Functions}
+Terms are just SML values of type \texttt{term}. You can use syntax functions (usually defined in \texttt{*Syntax.sml} files) to create them.
+\end{block}
+\end{frame}
+
+\begin{frame}
+\frametitle{Creating Terms II}
+\begin{tabular}{lll}
+\emph{Parser} & \emph{Syntax Funs} & \\
+\hol{``:bool``} & \ml{mk\_type ("bool", [])} or \ml{bool} & type of Booleans \\
+\hol{``T``} & \ml{mk\_const ("T", bool)} or \ml{T} & term true \\
+\hol{``\holNeg{}b``} & \hol{mk\_neg (} & negation of \\
+& \hol{\ \ mk\_var ("b", bool))} & \ \ Boolean var b\\
+\hol{``\ldots\ \holAnd{} \ldots``} & \hol{mk\_conj (\ldots, \ldots)} & conjunction \\
+\hol{``\ldots\ \holOr{} \ldots``} & \hol{mk\_disj (\ldots, \ldots)} & disjunction \\
+\hol{``\ldots\ \holImp{} \ldots``} & \hol{mk\_imp (\ldots, \ldots)} & implication \\
+\hol{``\ldots\ = \ldots``} & \hol{mk\_eq (\ldots, \ldots)} & equation \\
+\hol{``\ldots\ <=> \ldots``} & \hol{mk\_eq (\ldots, \ldots)} & equivalence \\
+\hol{``\ldots\ <> \ldots``} & \hol{mk\_neg (mk\_eq (\ldots, \ldots))} & negated equation
+\end{tabular}
+\end{frame}
+
+
+\section{Inference Rules}
+
+\begin{frame}
+\frametitle{Inference Rules for Equality}
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right=REFL] {\ }{\entails t = t}$\\[1em]
+$\inferrule*[right=ABS]{\Gamma \entails s = t\\x\ \textit{not free in}\ \Gamma}{\Gamma \entails \lambda{}x.\ s = \lambda{}x. t}$\\[1em]
+$\inferrule*[right=MK\_COMB]{\Gamma \entails s = t\\\Delta \entails u = v \\\\ \textit{types fit}}{\Gamma \cup \Delta \entails s(u) = t(v)}$\\[1em]
+\end{center}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule* [right={GSYM}] {\Gamma \entails s = t}{\Gamma \entails t = s}$\\[1em]
+$\inferrule*[right=TRANS] {\Gamma \entails s = t\\\Delta \entails t = u}{\Gamma \cup \Delta \entails s = u}$\\[1em]
+$\inferrule*[right=EQ\_MP]{\Gamma \entails p \Leftrightarrow q\\\Delta \entails p}{\Gamma \cup \Delta \entails q}$\\[1em]
+$\inferrule*[right=BETA\_CONV]{\ }{\entails (\lambda{}x.\ t) v = t[v/x]}$\\[1em]
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\frametitle{Inference Rules for free Variables}
+\begin{center}
+$\inferrule*[right=INST]{\Gamma[x_1, \ldots, x_n] \entails p[x_1, \ldots, x_n]}
+{\Gamma[t_1, \ldots, t_n] \entails p[t_1, \ldots, t_n]}$\\[1em]
+$\inferrule*[right=INST\_TYPE]{\Gamma[\alpha_1, \ldots, \alpha_n] \entails p[\alpha_1, \ldots, \alpha_n]}
+{\Gamma[\gamma_1, \ldots, \gamma_n] \entails p[\gamma_1, \ldots, \gamma_n]}$\\[1em]
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Inference Rules for Implication}
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right={MP, MATCH\_MP}]{\Gamma \entails p \Longrightarrow q\\\Delta \entails p}{\Gamma \cup \Delta \entails q}$\\[1em]
+$\inferrule*[right=EQ\_IMP\_RULE] {\Gamma \entails p = q}{\Gamma \entails p \Longrightarrow q\\\\\Gamma \entails q \Longrightarrow p}$\\[1em]
+$\inferrule*[right=IMP\_ANTISYM\_RULE]{\Gamma \entails p \Longrightarrow q\\\\\Delta \entails q \Longrightarrow p}{\Gamma \cup \Delta \entails p = q}$\\[1em]
+$\inferrule*[right=IMP\_TRANS] {\Gamma \entails p \Longrightarrow q\\\Delta \entails q \Longrightarrow r}{\Gamma \cup \Delta \entails p \Longrightarrow r}$\\[1em]
+\end{center}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right=DISCH]{\Gamma \entails p}{\Gamma - \{q\} \entails q \Longrightarrow p}$\\[1em]
+$\inferrule*[right=UNDISCH]{\Gamma \entails q \Longrightarrow p}{\Gamma \cup \{q\} \entails p}$\\[1em]
+$\inferrule*[right=NOT\_INTRO]{\Gamma \entails p \Longrightarrow \text{F}}{\Gamma \entails \holNeg{}p}$\\[1em]
+$\inferrule*[right=NOT\_ELIM]{\Gamma \entails \holNeg{}p}{\Gamma \entails p \Longrightarrow \text{F}}$\\[1em]
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Inference Rules for Conjunction / Disjunction}
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right={CONJ}]{\Gamma \entails p\\\Delta \entails q}{\Gamma \cup \Delta \entails p\ \wedge\ q}$\\[1em]
+$\inferrule*[right={CONJUNCT1}]{\Gamma \entails p\ \wedge\ q}{\Gamma \entails p}$\\[1em]
+$\inferrule*[right={CONJUNCT2}]{\Gamma \entails p\ \wedge\ q}{\Gamma \entails q}$\\[1em]
+\end{center}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right={DISJ1}]{\Gamma \entails p}{\Gamma \entails p\ \vee\ q}$\\[1em]
+$\inferrule*[right={DISJ2}]{\Gamma \entails q}{\Gamma \entails p\ \vee\ q}$\\[1em]
+$\inferrule*[right={DISJ\_CASES}]{\Gamma \entails p \vee q\\\Delta_1 \cup \{p\} \entails r\\\Delta_2 \cup \{q\} \entails r}{\Gamma \cup \Delta_1 \cup \Delta_2 \entails r}$\\[1em]
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Inference Rules for Quantifiers}
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right={GEN}]{\Gamma \entails p\\x \text{\ not free in\ }\Gamma}{\Gamma \entails \forall{}x.\ p}$\\[1em]
+$\inferrule*[right={SPEC}]{\Gamma \entails \forall{}x.\ p}{\Gamma \entails p[u/x]}$\\[1em]
+\end{center}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right={EXISTS}]{\Gamma \entails p[u/x]}{\Gamma \entails \exists{}x.\ p}$\\[1em]
+$\inferrule*[right={CHOOSE}]{\Gamma \entails \exists{}x.\ p\\\Delta \cup \{p[u/x]\} \entails r\\
+u \text{\ not free in\ } \Gamma, \Delta, p \text{ and } r}
+{\Gamma \cup \Delta \entails r}$\\[1em]
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Forward Proofs}
+
+\begin{frame}
+\frametitle{Forward Proofs}
+
+\begin{itemize}
+\item axioms and inference rules are used to derive theorems
+\item this method is called \emph{forward proof}
+\begin{itemize}
+\item one starts with basic building blocks
+\item one moves step by step forward
+\item finally the theorem one is interested in is derived
+\end{itemize} 
+\item one can also implement own proof tools
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Forward Proofs --- Example I}
+
+Let's prove $\forall{}p.\ p \Longrightarrow p$.
+\bigskip
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{semiverbatim}
+val IMP_REFL_THM = let
+  val tm1 = ``p:bool``;
+  val thm1 = ASSUME tm1;
+  val thm2 = DISCH tm1 thm1;
+in 
+  GEN tm1 thm2
+
+end
+
+fun IMP_REFL t = 
+  SPEC t IMP_REFL_THM;
+\end{semiverbatim}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{semiverbatim}
+
+> val tm1 = ``p``: term
+> val thm1 = [p] |- p: thm
+> val thm2 = |- p ==> p: thm
+
+> val IMP_REFL_THM = 
+    |- !p. p ==> p: thm
+
+
+> val IMP_REFL = 
+    fn: term -> thm
+\end{semiverbatim}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Forward Proofs --- Example II}
+
+Let's prove $\forall{}P\,v.\ (\exists{}x.\ (x = v) \wedge P\ x) \Longleftrightarrow P\ v$.
+\bigskip
+
+\begin{columns}
+\scriptsize
+\begin{column}{.45\textwidth}
+\begin{semiverbatim}
+val tm_v = ``v:'a``;
+val tm_P = ``P:'a -> bool``;
+val tm_lhs = ``?x. (x = v) \holAnd{} P x``
+val tm_rhs = mk_comb (tm_P, tm_v);
+
+val thm1 = let
+  val thm1a = ASSUME tm_rhs;
+  val thm1b = 
+    CONJ (REFL tm_v) thm1a;
+  val thm1c = 
+    EXISTS (tm_lhs, tm_v) thm1b
+in
+  DISCH tm_rhs thm1c
+end
+\end{semiverbatim}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{semiverbatim}
+
+
+
+
+
+
+> val thm1a = [P v] |- P v: thm
+> val thm1b = 
+    [P v] |- (v = v) \holAnd{} P v: thm
+> val thm1c = 
+    [P v] |- ?x. (x = v) \holAnd{} P x
+
+> val thm1 = [] |- 
+    P v ==> ?x. (x = v) \holAnd{} P x: thm
+\end{semiverbatim}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Forward Proofs --- Example II cont.}
+
+\begin{columns}
+\scriptsize
+\begin{column}{.45\textwidth}
+\begin{semiverbatim}
+val thm2 = let
+  val thm2a = 
+    ASSUME ``(u:'a = v) \holAnd{} P u``
+  val thm2b = AP_TERM tm_P 
+    (CONJUNCT1 thm2a);
+  val thm2c = EQ_MP thm2b 
+    (CONJUNCT2 thm2a);
+  val thm2d = 
+    CHOOSE (``u:'a``, 
+      ASSUME tm_lhs) thm2c
+in
+  DISCH tm_lhs thm2d
+end
+
+
+val thm3 = IMP_ANTISYM_RULE thm2 thm1
+
+val thm4 = GENL [tm_P, tm_v] thm3
+
+\end{semiverbatim}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{semiverbatim}
+
+> val thm2a = [(u = v) \holAnd{} P u] |- 
+    (u = v) \holAnd{} P u: thm 
+> val thm2b = [(u = v) \holAnd{} P u] |- 
+    P u <=> P v
+> val thm2c = [(u = v) \holAnd{} P u] |- 
+    P v
+> val thm2d = [?x. (x = v) \holAnd{} P x] |- 
+    P v
+
+
+> val thm2 = [] |- 
+    ?x. (x = v) \holAnd{} P x ==> P v
+
+
+> val thm3 = [] |- 
+    ?x. (x = v) \holAnd{} P x <=> P v
+> val thm4 = [] |- !P v. 
+    ?x. (x = v) \holAnd{} P x <=> P v
+\end{semiverbatim}
+\end{column}
+\end{columns}
+\end{frame}
+
+% \section{Rules and Conversions}
+% \begin{frame}
+% \frametitle{Derived Tools}
+% \begin{itemize}
+% \item HOL lives from implementing reasoning tools in SML
+% \item \emph{rules} --- use theorems to produce new theorems\\
+% \begin{itemize}  
+% \item SML-type \ml{thm -> thm}
+% \item functions with similar type often called rule as well
+% \end{itemize}
+% \item \emph{conversions} --- convert a term into an equal one\\
+% \begin{itemize}
+% \item SML-type \ml{term -> thm}
+% \item given term \ml{t} produces theorem of form \ml{[] |- t = t'}
+% \item may raise exceptions \ml{HOL\_ERR} or \ml{UNCHANGED}
+% \end{itemize}
+% \item \ldots
+% \end{itemize}
+% \end{frame}
+
+% \begin{frame}
+% \frametitle{Conversions}
+
+% \begin{itemize}
+% \item HOL has very good tool support for equality reasoning
+% \item \emph{conversions} are important for HOL's automation
+% \item there is a lot of infrastructure for conversions
+% \begin{itemize}
+% \item \ml{RAND\_CONV}, \ml{RATOR\_CONV}, \ml{ABS\_CONV}
+% \item \ml{DEPTH\_CONV}
+% \item \ml{THENC}, \ml{TRY\_CONV}, \ml{FIRST\_CONV}
+% \item \ml{REPEAT\_CONV}
+% \item \ml{CHANGED\_CONV}, \ml{QCHANGED\_CONV}
+% \item \ml{NO\_CONV}, \ml{ALL\_CONV}
+% \item \ldots
+% \end{itemize} 
+% \item important conversions
+% \begin{itemize}
+% \item \ml{REWR\_CONV}
+% \item \ml{REWRITE\_CONV}
+% \item \ldots
+% \end{itemize}
+% \end{itemize}
+% \end{frame}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

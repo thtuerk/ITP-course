@@ -1,0 +1,267 @@
+\part{HOL's Logic}
+
+\frame[plain]{\partpage}
+
+
+\section{HOL Logic}
+
+\begin{frame}
+\frametitle{HOL Logic}
+\begin{itemize}
+\item the HOL theorem prover uses a version of classical \textbf{h}igher \textbf{o}rder \textbf{l}ogic:\\
+classical higher order predicate calculus with \\
+terms from the typed lambda calculus (\ie simple type theory)
+\item this sounds complicated, but is intuitive for SML programmers
+\item (S)ML and HOL logic designed to fit each other
+\item if you understand SML, you understand HOL logic
+
+\bigskip
+\begin{center}
+\emph{HOL = functional programming + logic}
+\end{center}
+\bigskip
+
+\begin{alertblock}{Ambiguity Warning}
+The acronym \textit{HOL} refers to both the \textit{HOL interactive theorem prover} and the \textit{HOL logic} used by it. It's also a common abbreviation for \textit{higher order logic} in general.
+\end{alertblock}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Types}
+\begin{itemize}
+\item SML datatype for types
+\begin{itemize}
+\item \emph{Type Variables} ($\texttt{'a},\ \alpha,\ \texttt{'b},\ \beta,\ \ldots$)\\
+Type variables are implicitly universally quantified. Theorems containing type variables
+hold for all instantiations of these. Proofs using type variables can be seen as proof schemata.
+\item \emph{Atomic Types} ($\texttt{c}$)\\
+Atomic types denote fixed types. Examples: \texttt{num}, \texttt{bool}, \texttt{unit}
+\item \emph{Compound Types} ($(\sigma_1, \ldots, \sigma_n) \textit{op}$)\\
+\textit{op} is a \alert{type operator} of arity \textit{n} and $\sigma_1, \ldots, \sigma_n$ \alert{argument types}. Type operators denote operations for constructing types.\\
+Examples: \texttt{num list} or \texttt{'a \# 'b}.
+\item \emph{Function Types} ($\sigma_1 \to \sigma_2$)\\
+$\sigma_1 \to \sigma_2$ is the type of \alert{total} functions from $\sigma_1$ to $\sigma_2$. 
+\end{itemize}
+\item types are never empty in HOL, \ie\\
+for each type at least one value exists
+\item all HOL functions are total
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Terms}
+\begin{itemize}
+\item SML datatype for terms
+\begin{itemize}
+\item \emph{Variables} ($\texttt{x}, \texttt{y}, \ldots$)
+\item \emph{Constants} ($\texttt{c}, \ldots$)
+\item \emph{Function Application} ($\texttt{f a}$)
+\item \emph{Lambda Abstraction} ($\texttt{\textbackslash x.\ f x}$\ \ or\ \ $\lambda x.\ f x$)\\
+Lambda abstraction represents anonymous function definition.\\The corresponding SML syntax is \texttt{fn x => f x}.
+\end{itemize}
+\item terms have to be well-typed
+\item same typing rules and same type-inference as in SML take place
+\item terms very similar to SML expressions
+\item notice: predicates are functions with return type \texttt{bool}, \ie
+no distinction between functions and predicates, terms and formulae
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Terms II}
+\begin{tabular}{lll}
+\textbf{HOL term} & \textbf{SML expression} & \textbf{type HOL / SML} \\
+\hol{0} & \ml{0} & \hol{num} / \ml{int} \\
+\hol{x:'a} & \ml{x:'a} & variable of type \hol{'a} \\
+\hol{x:bool} & \ml{x:bool} & variable of type \hol{bool}  \\
+\hol{x + 5} & \ml{x + 5} & applying function \hol{+} to \hol{x} and \hol{5}  \\
+\hol{\textbackslash x.\ x + 5} & \ml{fn x => x + 5} & anonymous (\aka inline) function \\
+& & of type \hol{num -> num} \\
+\hol{(5, T)} & \ml{(5, true)} & \hol{num \# bool} / \ml{int * bool}\\
+\hol{[5;3;2]++[6]} & \ml{[5,3,2]@[6]} & \hol{num list} / \ml{int list}
+\end{tabular}
+\end{frame}
+
+\begin{frame}
+\frametitle{Free and Bound Variables / Alpha Equivalence}
+\begin{itemize}
+\item in SML, the names of function arguments does not matter (much)
+\item similarly in HOL, the names of variables used by lambda-abstractions does not matter (much)
+\item the lambda-expression $\lambda x.\ t$ is said to \emph{bind} the variables $x$ in term $t$
+\item variables that are guarded by a lambda expression are called \emph{bound}
+\item all other variables are \emph{free} 
+\item Example: $x$ is free and $y$ is bound in \hol{$(x = 5) \wedge (\lambda y.\ (y < x))\ 3$} 
+\item the names of bound variables are unimportant semantically
+\item two terms are called \emph{alpha-equivalent} iff they differ only in the names of bound variables
+\item Example: \hol{$\lambda{}x.\ x$} and \hol{$\lambda{}y.\ y$} are alpha-equivalent
+\item Example: \hol{$x$} and \hol{$y$} are not alpha-equivalent 
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Theorems}
+\begin{itemize}
+\item theorems are of the form $\Gamma \entails p$ where
+\begin{itemize}
+\item $\Gamma$ is a set of hypothesis
+\item $p$ is the conclusion of the theorem
+\item all elements of $\Gamma$ and $p$ are formulae, \ie terms of type \texttt{bool}
+\end{itemize}
+\item $\Gamma \entails p$ records that using $\Gamma$ the statement $p$ \alert{has been} proved\\
+\item notice difference to logic: there it means \alert{can be} proved
+\item the proof itself is not recorded
+\item theorems can only be created through a small interface in the \emph{kernel}
+\end{itemize}
+\end{frame}
+
+
+\section{Kernel}
+\begin{frame}
+\frametitle{HOL Light Kernel}
+
+\begin{itemize}
+\item the HOL kernel is hard to explain
+\begin{itemize}
+\item for historic reasons some concepts are represented rather complicated
+\item for speed reasons some derivable concepts have been added
+\end{itemize}
+\item instead consider the HOL Light kernel, which is a cleaned-up version
+\item there are two predefined constants
+\begin{itemize}
+\item \texttt{= :\ 'a -> 'a -> bool}
+\item \texttt{@ :\ ('a -> bool) -> 'a}
+\end{itemize}
+\item there are two predefined types
+\begin{itemize}
+\item \texttt{bool}
+\item \texttt{ind}
+\end{itemize}
+\item the meaning of these types and constants is given by inference rules and axioms
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{HOL Light Inferences I}
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule* [right=REFL] {\ }{\entails t = t}$\\[1em]
+$\inferrule*[right=TRANS] {\Gamma \entails s = t\\\Delta \entails t = u}{\Gamma \cup \Delta \entails s = u}$\\[1em]
+$\inferrule*[right=COMB]{\Gamma \entails s = t\\\Delta \entails u = v \\\\ \textit{types fit}}{\Gamma \cup \Delta \entails s(u) = t(v)}$\\[1em]
+\end{center}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{center}
+$\inferrule*[right=ABS]{\Gamma \entails s = t\\x\ \textit{not free in}\ \Gamma}{\Gamma \entails \lambda{}x.\ s = \lambda{}x.\ t}$\\[1em]
+$\inferrule*[right=BETA]{\ }{\entails (\lambda{}x.\ t)\, x = t}$\\[1em]
+$\inferrule*[right=ASSUME]{\ }{\{p\}\entails p}$
+\end{center}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL Light Inferences II}
+\begin{center}
+$\inferrule*[right=EQ\_MP]{\Gamma \entails p \Leftrightarrow q\\\Delta \entails p}{\Gamma \cup \Delta \entails q}$\\[1em]
+$\inferrule*[right=DEDUCT\_ANTISYM\_RULE]{\Gamma \entails p\\\Delta \entails q}
+{(\Gamma-\{q\}) \cup (\Delta - \{p\}) \entails p \Leftrightarrow q}$\\[1em]
+$\inferrule*[right=INST]{\Gamma[x_1, \ldots, x_n] \entails p[x_1, \ldots, x_n]}
+{\Gamma[t_1, \ldots, t_n] \entails p[t_1, \ldots, t_n]}$\\[1em]
+$\inferrule*[right=INST\_TYPE]{\Gamma[\alpha_1, \ldots, \alpha_n] \entails p[\alpha_1, \ldots, \alpha_n]}
+{\Gamma[\gamma_1, \ldots, \gamma_n] \entails p[\gamma_1, \ldots, \gamma_n]}$\\[1em]
+\end{center}
+\end{frame}
+
+\newcommand{\tabitem}{~~\llap{\textbullet}~~}
+
+\begin{frame}
+\frametitle{HOL Light Axioms and Definition Principles}
+\begin{itemize}
+\item 3 axioms needed\medskip\\\qquad
+\begin{tabular}{ll}
+ETA\_AX & $|- (\lambda{}x.\ t\ x) = t$ \\
+SELECT\_AX & $|- P\ x \Longrightarrow P ((@) P))$ \\
+INFINITY\_AX & predefined type \texttt{ind} is infinite 
+\end{tabular}
+\item definition principle for constants
+\begin{itemize}
+\item constants can be introduced as abbreviations
+\item constraint: no free vars and no new type vars
+\end{itemize}
+\item definition principle for types
+\begin{itemize}
+\item new types can be defined as non-empty subtypes of existing types
+\end{itemize}
+\item both principles 
+\begin{itemize}
+\item lead to conservative extensions
+\item preserve consistency 
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL Light derived concepts}
+Everything else is derived from this small kernel. 
+\[
+\begin{array}{ccl}
+T & =_{\textit{def}} & (\lambda{}p.\ p) = (\lambda{}p.\ p)\\
+\wedge & =_{\textit{def}} & \lambda{}p\,q.\ (\lambda f.\ f\ p\ q) = (\lambda{}f.\ f\ T\ T) \\
+\Longrightarrow & =_{\textit{def}} & \lambda{}p\,q.\ (p \wedge q \Leftrightarrow p) \\
+\forall & =_{\textit{def}} & \lambda{}P.\ (P = \lambda{}x.\ T) \\
+\exists & =_{\textit{def}} & \lambda{}P.\ (\forall{}q.\ (\forall{}x.\ P(x) \Longrightarrow q) \Longrightarrow q) \\
+\ldots \\
+\end{array}
+\]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Multiple Kernels}
+\begin{itemize}
+\item Kernel defines abstract datatypes for types, terms and theorems
+\item one does not need to look at the internal implementation
+\item therefore, easy to exchange
+\item there are at least 3 different kernels for HOL
+\begin{itemize}
+\item standard kernel (de Bruijn indices)
+\item experimental kernel (name / type pairs)
+\item OpenTheory kernel (for proof recording) 
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\section{HOL Logic Summary}
+
+\begin{frame}
+\frametitle{HOL Logic Summary}
+\begin{itemize}
+\item HOL theorem prover uses classical higher order logic
+\item HOL logic is very similar to SML
+\begin{itemize}
+\item syntax 
+\item type system 
+\item type inference
+\end{itemize}
+\item HOL theorem prover very trustworthy because of LCF approach
+\begin{itemize}
+\item there is a small kernel
+\item proofs are not stored explicitly
+\end{itemize}
+\item you don't need to know the details of the kernel
+\item usually one works at a much higher level of abstraction
+\end{itemize}
+\end{frame}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

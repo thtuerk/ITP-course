@@ -1,0 +1,70 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+
+\input{../hol_commands.inc}
+
+\title{Exercise 7}
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part}ITP Exercise 7
+\end{center}
+\bigskip
+
+\webversion{}{
+\section{Final Project}
+
+You should all have started working on your final project by now. The last lecture will take place Monday, 12th June. Practical sessions will continue till 23rd June. There will be an additional practical session on 19 June during the slot normally used for the lecture. The final project is at the very latest due on the 23rd. If other agreements have been reached in person, these take precedence. Despite the late deadline, you are still required to turn up to at least one practical session each week. I highly recommend attending more than one each week. 
+}
+\section{Exercise 7}
+
+\webversion{}{Since you are working on the final project, exercise 7 is optional. You are not required to 
+work it and there is no deadline.}
+
+
+\subsection{Advanced Definition Principles}
+
+Define the reflexive, transitive closure of a relation using 3 different methods as shown below.
+\hol{RTC\_REL} is defining it using the inductive relation library. \hol{RTC\_DIRECT} is
+using a simple higher order logic definition and \hol{RTC\_REC} uses recursion on natural numbers to define it. Show that all three definitions are defining the same function, \ie show
+\hol{(RTC\_REL = RTC\_DIRECT) \holAnd{} (RTC\_REL = RTC\_REC) \holAnd{} (RTC\_REC = RTC\_DIRECT)}.
+
+
+\begin{verbatim}
+val (RTC_REL_rules, RTC_REL_ind, RTC_REL_cases) = Hol_reln `
+    (!x y.   R x y                          ==> RTC_REL R x y) /\
+    (!x.                                        RTC_REL R x x) /\
+    (!x y z. RTC_REL R x y /\ RTC_REL R y z ==> RTC_REL R x z)`
+
+val RTC_DIRECT_def = new_definition ("RTC_DIRECT",
+  ``RTC_DIRECT R = \(a:'a) (b:'a). !P. 
+      ((!x. P x x) /\ (!x y. R x y ==> P x y) /\ 
+       (!x y z. (P x y /\ P y z) ==> P x z)) ==> 
+      (P a b)``);
+
+val RTC_REC_NUM_def = Define `
+  (RTC_REC_NUM 0 R x y <=> (x = y)) /\
+  (RTC_REC_NUM (SUC n) R x y <=> (?z. R x z /\ RTC_REC_NUM n R z y))`
+
+val RTC_REC_def = Define `
+  RTC_REC R x y = ?n. RTC_REC_NUM n R x y`;
+\end{verbatim}
+
+
+\subsection{Simplifier}
+
+Dig out the code for \texttt{find\_contr\_in\_conj\_CONV} your wrote for execise 2, section 4.4. Create a simpset-fragment containing this conversion and use it on several examples.
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

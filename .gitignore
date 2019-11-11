@@ -1,0 +1,17 @@
+*.log
+*~
+*.toc
+*.nav
+*.ent
+*.aux
+*.out
+*.snm
+*.dvi
+/lectures/pdfs/*
+/questionnaire/questionnaire-simple.pdf
+/questionnaire/questionnaire.pdf
+/lectures/version.inc
+/#*
+/.~*
+/lectures/tmp/*
+*eps-converted-to.pdf

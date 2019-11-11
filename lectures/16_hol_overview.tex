@@ -1,0 +1,226 @@
+\part{Overview of HOL~4}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Overview of HOL 4}
+
+\begin{itemize}
+\item in this course we discussed the basics of HOL 4
+\item you were encouraged to learn more on your own in exercises
+\item there is a lot more to learn even after the end of the course
+\begin{itemize}
+\item many more libraries
+\item proof tools
+\item existing formalisations
+\item ...
+\end{itemize}
+\item to really use HOL well, you should continue learning
+\item to help getting started, a short overview is presented here
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL Bare Source Directories}
+
+The following source directories are the very basis of HOL. They
+are required to build \hol{hol.bare}.
+
+\begin{itemize}
+\item \hol{src/portableML} -- common stuff for PolyML and MoscowML
+\item \hol{src/prekernel}
+\item \hol{src/0} -- Standard Kernel
+\item \hol{src/logging-kernel} -- Logging Kernel
+\item \hol{src/experimental-kernel} -- Experimental Kernel
+\item \hol{src/postkernel}
+\item \hol{src/opentheory}
+\item \hol{src/parse}
+\item \hol{src/bool}
+\item \hol{src/1}
+\item \hol{src/proofman}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{HOL Basic Directories I}
+
+On top of \texttt{hol.bare}, there are many basic theories and tools. These
+are all required for building the main \texttt{hol} executable.
+
+\begin{itemize}
+\item \hol{src/compute} -- fast ground term rewriting
+\item \hol{src/HolSat} -- SAT solver interfaces
+\item \hol{src/taut} -- propositional proofs using \texttt{HolSat}
+\item \hol{src/marker} -- marking terms
+\item \hol{src/q} -- parsing support 
+\item \hol{src/combin} -- combinators
+\item \hol{src/lite} -- some simple lib with various stuff
+\item \hol{src/refute} -- refutation prover, normal forms 
+\item \hol{src/metis} -- first order resolution prover
+\item \hol{src/meson} -- first order model elimination prover
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{HOL Basic Directories II}
+
+\begin{itemize}
+\item \hol{src/simp} -- simplifier
+\item \hol{src/holyhammer} -- tool for finding Metis proofs
+\item \hol{src/tactictoe} -- machine learning tool for finding proofs
+\item \hol{src/IndDef} -- (co)inductive relation definitions
+\item \hol{src/basicProof} -- library containing proof tools
+\item \hol{src/relation} -- relations and order theory
+\item \hol{src/one} -- unit type theory
+\item \hol{src/pair} -- tuples
+\item \hol{src/sum} -- sum types
+\item \hol{src/tfl} -- defining terminating functions
+\item \hol{src/option} -- option types
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{HOL Basic Directories III}
+
+\begin{itemize}
+\item \hol{src/num} -- numbers and arithmetic
+\item \hol{src/pred\_set} -- predicate sets
+\item \hol{src/datatype} -- Datatype package
+\item \hol{src/list} -- list theories
+\item \hol{src/monad} -- monads
+\item \hol{src/quantHeuristics} -- instantiating quantifiers
+\item \hol{src/unwind} -- lib for unwinding structural hardware definitions
+\item \hol{src/pattern\_matches} -- pattern matches alternative
+\item \hol{src/bossLib} -- main HOL lib loaded at start
+\end{itemize}
+\bigskip
+
+\hol{bossLib} is one central library. It loads all basic theories and libraries and
+provides convenient wrappers for the most common tools.
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL More Theories I}
+
+Besides the basic libraries and theories that are required and loaded by \ml{hol}, there
+are many more developements in HOL's source directory.
+
+\begin{itemize}
+\item \hol{src/sort} -- sorting lists
+\item \hol{src/string} -- strings
+\item \hol{src/TeX} -- exporting LaTeX code
+\item \hol{src/res\_quan} -- restricted quantifiers
+\item \hol{src/quotient} -- quotient type package
+\item \hol{src/finite\_map} -- finite map theory
+\item \hol{src/bag} -- bags \aka multisets
+\item \hol{src/n-bit} -- machine words
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL More Theories II}
+
+\begin{itemize}
+\item \hol{src/ring} -- reasoning about rings
+\item \hol{src/integer} -- integers
+\item \hol{src/llists} -- lazy lists
+\item \hol{src/path} -- finite and infinite paths through a transition system
+\item \hol{src/patricia} -- efficient finite map implementations using trees
+\item \hol{src/emit} -- emitting SML and OCaml code
+\item \hol{src/search} -- traversal of graphs that may contain cycles
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{HOL More Theories III}
+
+\begin{itemize}
+\item \hol{src/rational} -- rational numbers
+\item \hol{src/real} -- real numbers
+\item \hol{src/complex} -- comples numbers
+\item \hol{src/HolQbf} -- quantified boolean formulas
+\item \hol{src/HolSmt} -- support for external SMT solvers
+\item \hol{src/float} -- IEEE floating point numbers
+\item \hol{src/floating-point} -- new version of IEEE floating point numbers
+\item \hol{src/probability} -- some propability theory
+\item \hol{src/temporal} -- shallow embedding of temporal logic
+\item \ldots
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{HOL Selected Examples I}
+
+The directory examples hosts many theories and libraries as well. There is not
+always a clear distinction between an example and a development in \ml{src}. However, 
+in general examples are more specialised and often larger. They are not required to
+follow HOL's coding style as much as developments in \ml{src}.
+\bigskip
+
+\begin{itemize}
+\item \hol{examples/balanced\_bst} -- finite maps via balanced trees
+\item \hol{examples/unification} -- (nominal) unification
+\item \hol{examples/Crypto} -- various block ciphers
+\item \hol{examples/elliptic} -- elliptic curve cryptography
+\item \hol{examples/formal-languages} -- regular and context free formal languages
+\item \hol{examples/computability} -- basic computability theory
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{HOL Selected Examples II}
+\begin{itemize}
+\item \hol{examples/set-theory} -- axiomatic formalisation of set theory
+\item \hol{examples/lambda} -- lambda calculus
+\item \hol{examples/acl2} -- connection to ACL2 prover
+\item \hol{examples/theorem-prover} -- soundness proof of Milawa prover
+\item \hol{examples/PSL} -- formalisation of PSL
+\item \hol{examples/HolBdd} -- Binary Decision Diagrams
+\item \hol{examples/HolCheck} -- basic model checker
+\item \hol{examples/temporal\_deep} -- deep embedding of temporal logics and automata
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{HOL Selected Examples III}
+\begin{itemize}
+\item \hol{examples/pgcl} formalisation of pGCL (the Probabilistic Guarded Command Language)
+\item \hol{examples/dev} -- some hardware compilation
+\item \hol{examples/STE} -- symbolic trajectory evalutation
+\item \hol{examples/separationLogic} -- formalisation of separation logic
+\item \hol{examples/ARM} -- formalisation of ARM architecture
+\item \hol{examples/l3-machine-code} -- l3 language
+\item \hol{examples/machine-code} -- compilers and decompilers to machine-code
+\item \ldots
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Concluding Remarks}
+\begin{itemize}
+\item some useful tools are a bit hidden in the HOL sources
+\item moreover there are developments outside the main HOL 4 sources
+\begin{itemize}
+\item CakeML \emph{\url{https://cakeml.org}}
+\end{itemize}
+\item keep in touch with community to continue learning about HOL 4
+\begin{itemize}
+\item mailing-list \ml{hol-info}
+\item GitHub \emph{\url{https://github.com/HOL-Theorem-Prover/HOL}}
+\item \emph{\url{https://hol-theorem-prover.org}}
+\end{itemize}
+\item if you continue using HOL, please consider sharing your work with the community
+\end{itemize}
+\end{frame}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

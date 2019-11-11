@@ -1,0 +1,82 @@
+This directory contains exercises that were used during a ITP Course
+at KTH in Stockholm in 2017 (see
+https://www.kth.se/social/group/interactive-theorem-/). These
+exercises are intended to accompany the slides of this course that has
+been made publicly available.
+
+When working on the exercises, you don't need to read to the end of
+the whole sheet before starting to work on an exercise. However, I
+highly recommend reading all subquestions first. Some are easier, if
+the have already been considered while working on previous
+parts. Often there are hints at the very end of an exercise sheet. The
+intention is that you work on exercise first without these hints. If
+you have trouble, they provide some help. Usually it is a valuable
+learning experience thinking about what is explained by the hints. So,
+I really recomment to first attempt the exercises without the hints
+first.
+
+
+There are the following exercise sheets:
+
+
+0) Background Questionaire (before lecture started)
+
+This was handed out before the lecture even started. It's intention
+was to get a feeling for the background of the students. It was
+expected that students on average are able to solve half of the
+questions within 1 h.
+
+
+1) Exercise 1 (very beginning of Course)
+
+This exercise asks students to set up their HOL environment and
+practise using SML. It was handed out at the very beginning of the
+course and does not require any knowledge from the course.
+
+
+2) Exercise 2 (after Part 6, i.e. after forward proofs)
+
+Learn basic usage of HOL and emacs. How to construct terms, simple
+forward proofs and simple proof automation.
+
+
+3) Exercise 3 (after part 9, i.e. after induction proofs)
+
+Play around with simple backward proofs.
+
+
+4) Exercise 4 (after part 11, i.e. good definitions)
+
+Some simple proofs and definitions. The challange is how to structure your
+proofs nicely. Moreover, this exercise requires some SML programming and
+connects proofs and SML execution.
+
+
+5) Exercise 5 (after part 12, i.e. deep/shallow embeddings, knowledge about simplifier from part 13 useful)
+
+This exercise focuses on the effect of different definitions on
+proofs. Moreover, more so than in exercise 4 students are required to
+structure their development by defining own auxiliary definitions and
+lemmata. Some proof ideas are, while still rather simple, not trivial.
+This exercise can be solved without using the simplifier. However, the
+simplifier can help a lot. Similarlish it is encouraged to really
+learn how to use Metis for this exercise.
+
+
+6) Exercise 6 (final project, after part 13, simplifier)
+
+For organisational reasons, the final project was presented in
+exercise 6, i.e. before exercise 7 and the end of the course.  It
+requires people to learn about part of HOL themselves, do a non
+trivial formalisation and come up with some non trivial proofs.
+Exercise 6 is intentend to take 3-4 times as much time as the other
+exercises.
+
+
+7) Exercise 7 (after part 14, advanced definitions)
+
+Some exercises about advanced usages of the simplifier and how to use
+inductive relations. It is very short, since people were in parallel
+working already on their final project.
+
+

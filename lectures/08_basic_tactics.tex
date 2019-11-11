@@ -1,0 +1,675 @@
+\part{Basic Tactics}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Syntax of Tactics in HOL}
+\begin{itemize}
+\item originally tactics were written all in capital letters with underscores\\
+Example: \hol{ALL\_TAC}
+\item since 2010 more and more tactics have overloaded lower-case syntax\\
+Example: \hol{all\_tac}
+\item sometimes, the lower-case version is shortened\\
+Example: \hol{REPEAT}, \hol{rpt}
+\item sometimes, there is special syntax\\
+Example: \hol{THEN}, \hol{\textbsl{}\textbsl{}}, \hol{>>} 
+\item which one to use is mostly a matter of personal taste
+\begin{itemize}
+\item all-capital names are hard to read and type
+\item however, not for all tactics there are lower-case versions
+\item mixed lower- and upper-case tactics are even harder to read
+\item often shortened lower-case name is not \textit{speaking}
+\end{itemize}
+\end{itemize}
+\bottomstatement{In the lecture we will use mostly the old-style names.}
+\end{frame}
+
+
+\section{Basic Tactics}
+
+\begin{frame}
+\frametitle{Some Basic Tactics}
+
+\begin{tabular}{ll}
+\hol{GEN\_TAC} & remove outermost all-quantifier \\
+\hol{DISCH\_TAC} & move antecedent of goal into assumptions \\
+\hol{CONJ\_TAC} & splits conjunctive goal \\
+\hol{STRIP\_TAC} & splits on outermost connective (combination\\
+& \quad of \hol{GEN\_TAC}, \hol{CONJ\_TAC}, \hol{DISCH\_TAC}, \ldots) \\
+\hol{DISJ1\_TAC} & selects left disjunct \\
+\hol{DISJ2\_TAC} & selects right disjunct \\
+\hol{EQ\_TAC} & reduce Boolean equality to implications \\
+\hol{ASSUME\_TAC}\ thm & add theorem to list of assumptions \\
+\hol{EXISTS\_TAC} term & provide witness for existential goal \\ 
+\end{tabular}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Tacticals}
+
+\begin{itemize}
+\item tacticals are SML functions that combine tactics to form new tactics
+\item common workflow
+\begin{itemize}
+\item develop large tactic interactively
+\item using \hol{goalStack} and editor support to execute tactics one by one
+\item combine tactics manually with tacticals to create larger tactics
+\item finally end up with one large tactic that solves your goal
+\item use \hol{prove} or \hol{store\_thm} instead of \hol{goalStack}
+\end{itemize}
+\item make sure to \alert{clearly mark proof structure} by \eg
+\begin{itemize}
+\item use indentation
+\item use parentheses
+\item use appropriate connectives
+\item \ldots
+\end{itemize}
+\item goalStack commands like \hol{e} or \hol{g} should not appear in your final proof
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Some Basic Tacticals}
+
+\begin{tabular}{lll}
+tac1 \hol{>>} tac2 & \hol{THEN}, \hol{\textbsl{}\textbsl{}} & applies tactics in sequence \\
+tac \hol{>|} tacL & \hol{THENL} & applies list of tactics to subgoals \\ 
+tac1 \hol{>-} tac2 & \hol{THEN1} & applies tac2 to the first subgoal of tac1 \\
+\hol{REPEAT} tac & \hol{rpt} & repeats tac until it fails \\
+\hol{NTAC} n tac & & apply tac n times \\
+\hol{REVERSE} tac & \hol{reverse} & reverses the order of subgoals \\
+tac1 \hol{ORELSE} tac2 & & applies tac1 only if tac2 fails \\
+\hol{TRY} tac & & do nothing if tac fails \\
+\hol{ALL\_TAC} & \hol{all\_tac} & do nothing \\
+\hol{NO\_TAC} & & fail
+\end{tabular}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Basic Rewrite Tactics}
+
+\begin{itemize}
+\item (equational) rewriting is at the core of HOL's automation
+\item we will discuss it in detail later
+\item details complex, but basic usage is straightforward
+\begin{itemize}
+\item given a theorem \hol{rewr\_thm} of form \hol{|- P\ x = Q\ x} and a term \hol{t}
+\item rewriting \hol{t} with \hol{rewr\_thm} means
+\item replacing each occurrence of a term \hol{P c} for some \hol{c} with \hol{Q c} in \hol{t}
+\end{itemize}
+\item \alert{warning:} rewriting may loop\\Example: rewriting with theorem \hol{|- X <=> (X \holAnd{} T)}
+\end{itemize}
+
+\begin{tabular}{ll}
+\hol{REWRITE\_TAC} thms & rewrite goal using equations found\\
+& in given list of theorems \\
+\hol{ASM\_REWRITE\_TAC} thms & in addition use assumptions \\
+\hol{ONCE\_REWRITE\_TAC} thms & rewrite once in goal using equations\\
+\hol{ONCE\_ASM\_REWRITE\_TAC} thms & rewrite once using assumptions
+\end{tabular}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Case-Split and Induction Tactics}
+
+\begin{tabular}{ll}
+\hol{Induct\_on} `term` & induct on \texttt{term} \\
+\hol{Induct} & induct on all-quantifier \\
+\hol{Cases\_on} `term` & case-split on \texttt{term} \\
+\hol{Cases} & case-split on all-quantifier \\
+\hol{MATCH\_MP\_TAC} thm & apply rule \\
+\hol{IRULE\_TAC} thm & generalised apply rule
+\end{tabular}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Assumption Tactics}
+
+\begin{tabular}{ll}
+\hol{POP\_ASSUM} thm-tac & use and remove first assumption \\
+  & \-\quad common usage \hol{POP\_ASSUM MP\_TAC} \\[1em]
+\hol{PAT\_ASSUM} term thm-tac& use (and remove) first \\
+  \-\quad also \hol{PAT\_X\_ASSUM} term thm-tac& \quad assumption matching pattern \\[1em]
+\hol{WEAKEN\_TAC} term-pred & removes first assumption \\
+& \quad{}satisfying predicate 
+\end{tabular}
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Decision Procedure Tactics}
+
+\begin{itemize}
+\item decision procedures try to solve the current goal completely
+\item they either succeed or fail
+\item no partial progress
+\item decision procedures vital for automation
+\end{itemize}
+\bigskip
+
+\begin{tabular}{ll}
+\hol{TAUT\_TAC} & propositional logic tautology checker \\
+\hol{DECIDE\_TAC} & linear arithmetic for \texttt{num} \\
+\hol{METIS\_TAC} thms & first order prover \\
+\hol{numLib.ARITH\_TAC} & Presburger arithmetic \\
+\hol{intLib.ARITH\_TAC} & uses Omega test
+\end{tabular}
+\end{frame}
+
+\begin{frame}
+\frametitle{Subgoal Tactics}
+
+\begin{itemize}
+\item it is vital to structure your proofs well
+\begin{itemize}
+\item improved maintainability
+\item improved readability
+\item improved reusability
+\item saves time in medium-run
+\end{itemize}
+\item therefore, use many small lemmata
+\item also, use many explicit subgoals
+\end{itemize}
+\bigskip
+\begin{tabular}{ll}
+`term-frag` \hol{by} tac & show term with tac and\\
+& add it to assumptions \\
+`term-frag` \hol{suffices\_by} tac & show it suffices to prove term
+\end{tabular}
+\end{frame}
+
+\begin{frame}
+\frametitle{Term Fragments / Term Quotations}
+
+\begin{itemize}
+\item notice that \hol{by} and \hol{suffices\_by} take \emph{term fragments}
+\item term fragments are also called \emph{term quotations}
+\item they represent (partially) unparsed terms
+\item parsing takes place during execution of tactic in context of goal
+\item this helps to avoid type annotations
+\item however, this means syntax errors show late as well
+\item the library \emph{Q} defines many tactics using term fragments
+\end{itemize}
+
+\end{frame}
+
+
+\section{Examples}
+
+\begin{frame}
+\frametitle{Importance of Exercises}
+
+\begin{itemize}
+\item here many tactics are presented in a very short amount of time
+\item there are many, many more important tactics out there
+\item few people can learn a programming language just by reading manuals
+\item similar few people can learn HOL just by reading and listening
+\item you should write your own proofs and play around with these tactics
+\item solving the exercises is highly recommended\\(and actually required if you want credits for this course)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 1}
+
+\begin{itemize}
+\item we want to prove \hol{!l.\ LENGTH (APPEND l l) = 2 * LENGTH l}
+\item first step: set up goal on \hol{goalStack}
+\item at same time start writing proof script
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item run \texttt{g ``!l.\ LENGTH (APPEND l l) = 2 * LENGTH l``}
+\item this is done by hol-mode
+\item move cursor inside term and press \texttt{M-h g}\\
+      (menu-entry \texttt{HOL - Goalstack - New goal})
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 2}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+!l. LENGTH (l ++ l) = 2 * LENGTH l
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item the outermost connective is an all-quantifier
+\item let's get rid of it via \hol{GEN\_TAC}
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (l ++ l) = 2 * LENGTH l``,
+GEN_TAC
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item run \texttt{e GEN\_TAC}
+\item this is done by hol-mode
+\item mark line with \texttt{GEN\_TAC} and press \texttt{M-h e}\\
+      (menu-entry \texttt{HOL - Goalstack - Apply tactic})
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 3}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+LENGTH (l ++ l) = 2 * LENGTH l
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item \hol{LENGTH} of \hol{APPEND} can be simplified
+\item let's search an appropriate lemma with \ml{DB.match}
+\end{itemize}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item run \ml{DB.print\_match [] ``LENGTH (\_ ++ \_)``}
+\item this is done via hol-mode
+\item press \texttt{M-h m} and enter term pattern\\
+      (menu-entry \texttt{HOL - Misc - DB match})
+\item this finds the theorem \ml{listTheory.LENGTH\_APPEND}\\
+   \hol{|- !l1 l2. LENGTH (l1 ++ l2) = LENGTH l1 + LENGTH l2}
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 4}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+LENGTH (l ++ l) = 2 * LENGTH l
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item let's rewrite with found theorem \ml{listTheory.LENGTH\_APPEND}
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+GEN_TAC >>
+REWRITE_TAC[listTheory.LENGTH\_APPEND]
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item connect the new tactic with tactical \hol{>>} (\hol{THEN})
+\item use hol-mode to expand the new tactic
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 5}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+LENGTH l + LENGTH l = 2 * LENGTH l
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item let's search a theorem for simplifying \hol{2 * LENGTH l}
+\item prepare for extending the previous rewrite tactic
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+GEN_TAC >>
+REWRITE_TAC[listTheory.LENGTH\_APPEND]
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item \hol{DB.match} finds theorem \hol{arithmeticTheory.TIMES2}
+\item press \texttt{M-h b} and undo last tactic expansion\\
+      (menu-entry \texttt{HOL - Goalstack - Back up})
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 6}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+LENGTH (l ++ l) = 2 * LENGTH l
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item extend the previous rewrite tactic 
+\item finish proof
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+GEN_TAC >>
+REWRITE_TAC[listTheory.LENGTH\_APPEND, arithmeticTheory.TIMES2]);
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item add \hol{TIMES2} to the list of theorems used by rewrite tactic
+\item use hol-mode to expand the extended rewrite tactic
+\item goal is solved, so let's add closing parenthesis and semicolon
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example I - Slide 7}
+
+\begin{itemize}
+\item we have a finished tactic proving our goal
+\item notice that \hol{GEN\_TAC} is not needed
+\item let's polish the proof script
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+GEN_TAC >>
+REWRITE_TAC[listTheory.LENGTH\_APPEND, arithmeticTheory.TIMES2]);
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Polished Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+REWRITE_TAC[listTheory.LENGTH\_APPEND, arithmeticTheory.TIMES2]);
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 1}
+
+\begin{itemize}
+\item let's prove something slightly more complicated
+\item drop old goal by pressing \texttt{M-h d}\\
+      (menu-entry \texttt{HOL - Goalstack - Drop goal})
+\item set up goal on \hol{goalStack} (\texttt{M-h g})
+\item at same time start writing proof script
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val NOT_ALL_DISTINCT_LEMMA = prove (``!x1 x2 x3 l1 l2 l3.
+  (MEM x1 l1 \holAnd{} MEM x2 l2 \holAnd{} MEM x3 l3) \holAnd{}
+  ((x1 <= x2) \holAnd{} (x2 <= x3) \holAnd{} x3 <= SUC x1) ==>
+  ~(ALL_DISTINCT (l1 ++ l2 ++ l3))``,
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 2}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+!x1 x2 x3 l1 l2 l3.
+  (MEM x1 l1 \holAnd{} MEM x2 l2 \holAnd{} MEM x3 l3) \holAnd{} 
+  x1 <= x2 \holAnd{} x2 <= x3 \holAnd{} x3 <= SUC x1 ==>
+  ~ALL_DISTINCT (l1 ++ l2 ++ l3)
+\end{semiverbatim}
+\end{block}
+
+
+\begin{itemize}
+\item let's strip the goal 
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val NOT_ALL_DISTINCT_LEMMA = prove (``!x1 x2 x3 l1 l2 l3.
+  (MEM x1 l1 \holAnd{} MEM x2 l2 \holAnd{} MEM x3 l3) \holAnd{}
+  ((x1 <= x2) \holAnd{} (x2 <= x3) \holAnd{} x3 <= SUC x1) ==>
+  ~(ALL_DISTINCT (l1 ++ l2 ++ l3))``,
+REPEAT STRIP\_TAC
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 2}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+!x1 x2 x3 l1 l2 l3.
+  (MEM x1 l1 \holAnd{} MEM x2 l2 \holAnd{} MEM x3 l3) \holAnd{} 
+  x1 <= x2 \holAnd{} x2 <= x3 \holAnd{} x3 <= SUC x1 ==>
+  ~ALL_DISTINCT (l1 ++ l2 ++ l3)
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item let's strip the goal 
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val LENGTH_APPEND_SAME = prove (
+  ``!l. LENGTH (APPEND l l) = 2 * LENGTH l``,
+REPEAT STRIP\_TAC
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item add \hol{REPEAT STRIP\_TAC} to proof script
+\item expand this tactic using hol-mode
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 3}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+F
+------------------------------------
+  0.  MEM x1 l1      4.  x2 <= x3                     
+  1.  MEM x2 l2      5.  x3 <= SUC x1                 
+  2.  MEM x3 l3      6.  ALL_DISTINCT (l1 ++ l2 ++ l3)
+  3.  x1 <= x2
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item oops, we did too much, we would like to keep \texttt{ALL\_DISTINCT} in goal
+\end{itemize}
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val NOT_ALL_DISTINCT_LEMMA = prove (``...``,
+REPEAT GEN\_TAC >> STRIP\_TAC
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Actions}
+\begin{itemize}
+\item undo \hol{REPEAT STRIP\_TAC} (\texttt{M-h b})
+\item expand more fine-tuned strip tactic
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 4}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\small
+~ALL_DISTINCT (l1 ++ l2 ++ l3)
+------------------------------------
+  0.  MEM x1 l1       3.  x1 <= x2    
+  1.  MEM x2 l2       4.  x2 <= x3    
+  2.  MEM x3 l3       5.  x3 <= SUC x1
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item now let's simplify \hol{ALL\_DISTINCT}
+\item search suitable theorems with \hol{DB.match}
+\item use them with rewrite tactic
+\end{itemize}
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val NOT_ALL_DISTINCT_LEMMA = prove (``...``,
+REPEAT GEN\_TAC >> STRIP\_TAC >>
+REWRITE\_TAC[listTheory.ALL_DISTINCT\_APPEND, listTheory.MEM\_APPEND]
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 5}
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\scriptsize
+~((ALL_DISTINCT l1 \holAnd{} ALL_DISTINCT l2 \holAnd{} !e. MEM e l1 ==> ~MEM e l2) \holAnd{}
+  ALL_DISTINCT l3 \holAnd{} !e. MEM e l1 \holOr{} MEM e l2 ==> ~MEM e l3)
+------------------------------------
+  0.  MEM x1 l1       3.  x1 <= x2    
+  1.  MEM x2 l2       4.  x2 <= x3    
+  2.  MEM x3 l3       5.  x3 <= SUC x1
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item from assumptions 3, 4 and 5 we know \hol{x2 = x1 \holOr{} x2 = x3}
+\item let's deduce this fact by \hol{DECIDE\_TAC}
+\end{itemize}
+\begin{block}{Proof Script}
+\begin{semiverbatim}\scriptsize
+val NOT_ALL_DISTINCT_LEMMA = prove (``...``,
+REPEAT GEN\_TAC >> STRIP\_TAC >>
+REWRITE\_TAC[listTheory.ALL_DISTINCT\_APPEND, listTheory.MEM\_APPEND] >>
+`(x2 = x1) \holOr{} (x2 = x3)` by DECIDE_TAC
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 6}
+
+\begin{block}{Current Goals --- 2 subgoals, one for each disjunct}
+\begin{semiverbatim}\scriptsize
+~((ALL_DISTINCT l1 \holAnd{} ALL_DISTINCT l2 \holAnd{} !e. MEM e l1 ==> ~MEM e l2) \holAnd{}
+  ALL_DISTINCT l3 \holAnd{} !e. MEM e l1 \holOr{} MEM e l2 ==> ~MEM e l3)
+------------------------------------
+  0.  MEM x1 l1       4.  x2 <= x3    
+  1.  MEM x2 l2       5.  x3 <= SUC x1
+  2.  MEM x3 l3       6a. x2 = x1
+  3.  x1 <= x2        6b. x2 = x3
+\end{semiverbatim}
+\end{block}
+
+\begin{itemize}
+\item both goals are easily solved by first-order reasoning
+\item let's use \hol{METIS\_TAC[]} for both subgoals
+\end{itemize}
+\begin{block}{Proof Script}
+\begin{semiverbatim}\scriptsize
+val NOT_ALL_DISTINCT_LEMMA = prove (``...``,
+REPEAT GEN\_TAC >> STRIP\_TAC >>
+REWRITE\_TAC[listTheory.ALL_DISTINCT\_APPEND, listTheory.MEM\_APPEND] >>
+`(x2 = x1) \holOr{} (x2 = x3)` by DECIDE_TAC >> (
+  METIS\_TAC[]
+));
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Tactical Proof - Example II - Slide 7}
+
+\begin{block}{Finished Proof Script}
+\begin{semiverbatim}\scriptsize
+val NOT_ALL_DISTINCT_LEMMA = prove (
+``!x1 x2 x3 l1 l2 l3.
+  (MEM x1 l1 \holAnd{} MEM x2 l2 \holAnd{} MEM x3 l3) \holAnd{}
+  ((x1 <= x2) \holAnd{} (x2 <= x3) \holAnd{} x3 <= SUC x1) ==>
+  ~(ALL_DISTINCT (l1 ++ l2 ++ l3))``,
+REPEAT GEN\_TAC >> STRIP\_TAC >>
+REWRITE\_TAC[listTheory.ALL_DISTINCT\_APPEND, listTheory.MEM\_APPEND] >>
+`(x2 = x1) \holOr{} (x2 = x3)` by DECIDE_TAC >> (
+  METIS\_TAC[]
+));
+\end{semiverbatim}
+\end{block}
+\begin{itemize}
+\item notice that proof structure is explicit
+\item parentheses and indentation used to mark new subgoals
+\end{itemize}
+\end{frame}
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

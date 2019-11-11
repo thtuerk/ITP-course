@@ -1,0 +1,166 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+
+\input{../hol_commands.inc}
+\title{Exercise 2}
+
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part}ITP Exercise 2
+\webversion{}{\\\small{due Friday 5th May}}
+\end{center}
+\bigskip
+
+
+\section{Self-Study}
+
+\subsection{Emacs}
+If you don't know Emacs well, familiarise yourself with its basic usage. Learn the key combinations for common operations like
+opening a file, saving current buffer, closing buffer, switching between buffers, searching in a file, copy and paste text etc.
+You might consider printing the \emph{Emacs Reference Card}\footnote{\url{https://www.gnu.org/software/emacs/refcards/pdf/refcard.pdf}} and putting
+it next to your computer.
+
+\subsection{HOL Documentation}
+Familiarise yourself with how to get help about HOL.
+
+\begin{itemize}
+\item Build the various documentations in directory \texttt{Manual}. For this, call \texttt{make} in directory \texttt{HOL-HOME/Manual}. For building the manuals, \texttt{hol} and \texttt{Holmake} need to run.
+Therefore make sure, \texttt{HOL-HOME/bin} is in your PATH.
+\item Have a brief look at the various manuals in order to understand where which kind of information
+can be found.
+\item The lectures will cover the logic foundations of the HOL
+theorem prover only very briefly and lightly. If you are interested in more
+details, have a look at the \emph{Logic} manual. This is purely optional.
+\item Familiarise yourself with the different ways to access the reference manual.
+  As an example read up on \texttt{MATCH\_MP} in the HTML reference manual, the PDF reference manual and the in-system help (type \texttt{help "MATCH\_MP"}).
+\item Familiarise yourself with the different printing switches of HOL, in particular the ones in hol-mode's menu. Learn how to turn Unicode-output on/off, how to show assumptions of theorems and how to show type annotations. 
+\item Use \texttt{DB.match} and \texttt{DB.find} to find theorems stating \verb#A /\ A = A#. Use both the emacs-mode and the SML REPL. Look at the interface of \texttt{DB}.
+\end{itemize}
+
+\subsection{Holmake}
+Learn about \texttt{Holmake} by reading description manual sections 7.3 - 7.3.4.  
+
+\subsection{Constructing Terms and Forward Proofs}
+
+To deepen the knowledge about how to construct terms, how to program in HOL and how to perform 
+forward proofs, please look at the following HOL modules: \ml{FinalThm.sml}, \ml{FinalTerm.sml},
+\ml{FinalType.sml}, \ml{Drule.sig}, \ml{Psyntax.sig}, \ml{boolSyntax.sig}, \ml{Lib.sig}.
+
+
+\section{Terms}
+
+\subsection{Free and Bound Vars}
+
+List the free variables of the following terms:
+\begin{itemize}
+\item \verb#(\x. 2 + (7 * x) + y) z#
+\item \verb#x + y + 2#
+\item \verb#!x. x + 1 > x#
+\item \verb#?x. x = y + 2#
+\end{itemize}
+
+\subsection{Alpha Equivalence}
+
+Are the following pairs of terms alpha-equivalent? A simple mark on the sheet is a sufficient answer. Also take two colors and mark all occurences of free vars in one color and all occourences of bound vars in the other. Assume that \texttt{x}, \texttt{y}, \texttt{z}, \texttt{a} and \texttt{b} are variables. \bigskip
+
+\begin{tabular}{@{$\ \ \bullet\ \ $}ll}
+\verb#\x. x# & \verb#\y. y# \\
+\verb#(\x. x) a# & \verb#(\y. y) a# \\
+\verb#(\x. x) a# & \verb#(\y. y) b# \\
+\verb#(\x. x)# & \verb#(\x. y)# \\
+\verb#(\x y. x /\ y)# & \verb#(\y x. x /\ y)# \\
+\verb#(\x y. x /\ y) a a# & \verb#(\y x. x /\ y) a a# \\
+\verb#a /\ b# & \verb#a /\ b# \\
+\verb#!x. x + 1 > x# & \verb#!y. y + 1 > y# \\
+\verb#?x. x = y + 2# & \verb#?x. x = z + 2# \\
+\verb#!y. ?x. x = y + 2# & \verb#!z. ?x. x = z + 2# \\
+\end{tabular}
+
+\subsection{Constructing Terms}
+
+Write a SML function \ml{mk\_imp\_conj\_term :\ int -> term} that constructs for inputs $n$ greater 1 the term \verb#!A1 ... An. A1 ==> ... ==> An ==> (A1 /\ ... /\ An)#. If $n$ is not greater one, a \ml{HOL\_ERR} exception (use \ml{failwith}). You might want to read up on \ml{boolSyntax} for this exercise. You can use list-make-functions like \ml{mk\_list\_conj}, but also use non-list ones. 
+
+
+\section{Basic Forward Proofs}
+
+\subsection{Commutativity of Conjunction}
+Prove the lemma \verb#!A B. (A /\ B) <=> (B /\ A)# using only inferences presented in the lecture.
+
+\subsection{Simplifying Conjunction}
+Prove the lemmas \verb#!A. (A /\ ~A) <=> F# and \verb#!A B. (A /\ ~A) /\ B <=> F#.
+
+
+\section{Writing Own Automation}
+
+\subsection{Implications between Conjunctions}
+Write a function \texttt{show\_big\_conj\_imp :\ term -> term -> thm} that assumes that both terms are conjunctions and tries to prove that the first one implies the second one. It should be clever enough to handle \texttt{T} and \texttt{F}.
+\verb#show_big_conj_imp ``a /\ (b /\ a) /\ c`` ``c /\ T /\ a``# for example should succeed with \verb#|- (a /\ (b /\ a) /\ c) ==> (c /\ T /\ a)#. It should also be able to show \verb#|- (a /\ F) /\ c ==> d#. If the implication cannot be shown, the function \texttt{show\_big\_conj\_imp} should raise \texttt{HOL\_ERR}.
+
+For this exercise it might be useful to read up on \texttt{Term.compare} and the red-black sets and maps in directory \texttt{portableML}.
+
+
+
+\subsection{Equivalences between Conjunctions}
+Use the function \texttt{show\_big\_conj\_imp} to now define a function \texttt{show\_big\_conj\_eq :\ term -> term -> thm} that tries to shows the equivalence between the input terms. If both input terms are alpha-equivalent, it should raise an \texttt{UNCHANGED} exception. If the equivalence cannot be proved, a \texttt{HOL\_ERR} exception should be raised.
+
+\subsection{Duplicates in Conjunctions}
+Use the function \texttt{show\_big\_conj\_eq} to implement a conversion \texttt{remove\_dups\_in\_conj\_CONV} that replaces duplicate appearances of a term in a large conjunction with \texttt{T}. Given the term \begin{center}\verb#a /\ (b /\ a) /\ c /\ b /\ a#
+\end{center}
+it should for example return the theorem
+\begin{center}
+\verb#|- (a /\ (b /\ a) /\ c /\ b /\ a) = (a /\ (b /\ T) /\ c /\ T /\ T)#.
+\end{center}.
+If no duplicates are found, \texttt{UNCHANGED} should be raised. If the input is not of type
+\texttt{bool}, a \texttt{HOL\_ERR} should be raised.
+
+\subsection{Contradictions in Conjunctions}
+Use the function \texttt{show\_big\_conj\_eq} to implement a conversion \texttt{find\_contr\_in\_conj\_CONV} that searches for terms and their negations in a large conjunction. If such contradictions are found, the term should be converted to \texttt{F}. 
+Given the term \begin{center}\verb#a /\ (b /\ ~a) /\ c#
+\end{center}
+it should for example return the theorem
+\begin{center}
+\verb#|- (a /\ (b /\ ~a) /\ c) = F#.
+\end{center}.
+If no contradictions are found, \texttt{UNCHANGED} should be raised. If the input is not of type
+\texttt{bool}, a \texttt{HOL\_ERR} should be raised.
+
+
+\section{Squabbling Philosophers}
+
+Recently keen historians were finally able to deduce where the less well-known ancient philosophers
+Platon, Diogenes and Euklid came from (see background-questionnaire). However, in order to avoid being embarrassed by announcing some wrong result, they asked you to check their reasoning using HOL.
+Can you help and show that Platon indeed came from Sparta?
+
+\subsection{Download and Compile}
+Get the file \texttt{philScript.sml}\webversion{}{ from the exercise repository\footnote{\url{https://gits-15.sys.kth.se/tuerk/ITP-exercises}}}. Compile it with \texttt{Holmake} to get a theory file. Read \texttt{philTheory.sig}.
+
+\subsection{Proof}
+Open the theory \texttt{philTheory} and prove \verb#Sp platon#. This is a simple first order logic problem. Therefore automated methods like resolution can solve it easily. HOL has such methods build in in the form of \eg the resolution based prover \ml{METIS}. For example, 
+\begin{center}
+\verb#METIS_PROVE [PHIL_KNOWLEDGE] ``Sp platon``#
+\end{center}
+would already prove it. However, for learning, let us prove it via a low-level forward proof.
+
+\begin{itemize}
+\item Using the lemma \texttt{MONO\_NOT} and the inference rules \texttt{MATCH\_MP}, 
+\texttt{SPEC} and \texttt{IMP\_TRANS} show the lemma \verb#|- ~(W p) ==> Sp p#.
+\item Similarly show \verb#|- ~(B p) ==> At p#.
+\item Assume \verb#At platon# and using this show the lemma \verb#[At platon] |- F# with
+  \texttt{MP} and \texttt{MATCH\_MP}. You will need many steps and many different lemmata.
+\item Using \texttt{DISCH}, \texttt{NOT\_INTRO} and \texttt{MATCH\_MP} show \verb#Sp platon#.
+\end{itemize}
+
+Don't forget to turn printing of assumptions on in HOL or you will have a hard time figuring out what is going on.
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

@@ -1,0 +1,174 @@
+\part{Induction Proofs}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Mathematical Induction}
+\begin{itemize}
+\item mathematical (\aka natural) induction principle:\\
+  If a property $P$ holds for 0 and $P(n)$ implies $P(n+1)$ for all n,\\
+  then $P(n)$ holds for all $n$.
+\item HOL is expressive enough to encode this principle as a theorem.\\\medskip
+\hol{|- !P. P 0 \holAnd{} (!n.\ P n ==> P (SUC n)) ==> !n.\ P n}\medskip
+\item Performing mathematical induction in HOL means applying this theorem (\eg via \hol{HO\_MATCH\_MP\_TAC})
+
+\item there are many similarish induction theorems in HOL
+\item Example: complete induction principle\\\medskip
+\hol{|- !P. (!n.\ (!m.\ m < n ==> P m) ==> P n) ==> !n.\ P n}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Structural Induction Theorems}
+\begin{itemize}
+\item \emph{structural induction} theorems are an important special form of induction theorems 
+\item they describe performing induction on the structure of a datatype
+\item Example: \hol{\scriptsize|- !P.\ P [] \holAnd{} (!t.\ P t ==> !h.\ P (h::t)) ==> !l.\ P l}
+\item structural induction is used very frequently in HOL
+\item for each algabraic datatype, there is an induction theorem
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Other Induction Theorems}
+\begin{itemize}
+\item there are many induction theorems in HOL
+\begin{itemize}
+\item datatype definitions lead to induction theorems
+\item recursive function definitions produce corresponding induction theorems
+\item recursive relation definitions give rise to induction theorems
+\item many are manually defined
+\end{itemize}
+\item Examples\\\bigskip{\scriptsize
+\hol{|- !P.\ P [] \holAnd{} (!l.\ P l ==> !x.\ P (SNOC x l)) ==> !l.\ P l}\\\bigskip
+\hol{|- !P.\ P FEMPTY \holAnd{} \\
+\-\qquad\quad(!f.\ P f ==> !x y.\ x NOTIN FDOM f ==> P (f |+ (x,y))) ==> !f.\ P f}\\\bigskip
+\hol{|- !P.\ P \{\} \holAnd{} \\
+\-\qquad\quad(!s.\ FINITE s \holAnd{} P s ==> !e.\ e NOTIN s ==> P (e INSERT s)) ==> \\
+\-\qquad\quad!s.\ FINITE s ==> P s}\\\bigskip
+\hol{|- !R P.\ (!x y.\ R x y ==> P x y) \holAnd{} (!x y z.\ P x y \holAnd{} P y z ==> P x z) ==>\\
+\-\qquad\quad!u v.\ R$^+$ u v ==> P u v}}
+
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Induction (and Case-Split) Tactics}
+\begin{itemize}
+\item the tactic \hol{Induct} (or \hol{Induct\_on}) is usually used to start induction proofs
+\item it looks at the type of the quantifier (or its argument) and applies the default induction theorem for this type
+\item this is usually what one needs
+\item other (non default) induction theorems can be applied via \hol{INDUCT\_THEN} or \hol{HO\_MATCH\_MP\_TAC}
+\item similarish \hol{Cases\_on} picks and applies default case-split theorems
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Induction Proof - Example I - Slide 1}
+
+\begin{itemize}
+\item let's prove via induction\\
+  \hol{!l1 l2.\ REVERSE (l1 ++ l2) = REVERSE l2 ++ REVERSE l1}
+\item we set up the goal and start an induction proof on \hol{l1}
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val REVERSE_APPEND = prove (
+``!l1 l2.\ REVERSE (l1 ++ l2) = REVERSE l2 ++ REVERSE l1``,
+Induct
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Induction Proof - Example I - Slide 2}
+
+\begin{itemize}
+\item the induction tactic produced two cases
+\item base case:\\
+{\scriptsize\hol{!l2.\ REVERSE ([] ++ l2) = REVERSE l2 ++ REVERSE []}}
+\item induction step:\\
+{\scriptsize
+\begin{semiverbatim}
+\hol{!h l2.\ REVERSE (h::l1 ++ l2) = REVERSE l2 ++ REVERSE (h::l1)}
+-----------------------------------------------------------
+\hol{!l2.\ REVERSE (l1 ++ l2) = REVERSE l2 ++ REVERSE l1}
+\end{semiverbatim}}
+
+\item both goals can be easily proved by rewriting
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\scriptsize
+val REVERSE_APPEND = prove (``
+!l1 l2.\ REVERSE (l1 ++ l2) = REVERSE l2 ++ REVERSE l1``,
+Induct >| [
+  REWRITE_TAC[REVERSE_DEF, APPEND, APPEND_NIL],
+  ASM_REWRITE_TAC[REVERSE_DEF, APPEND, APPEND_ASSOC]
+]);
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Induction Proof - Example II - Slide 2}
+
+\begin{itemize}
+\item let's prove via induction\\
+  \hol{!l.\ REVERSE (REVERSE l) = l}
+\item we set up the goal and start an induction proof on \hol{l}
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\small
+val REVERSE_REVERSE = prove (
+``!l.\ REVERSE (REVERSE l) = l``,
+Induct
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Induction Proof - Example II - Slide 2}
+
+\begin{itemize}
+\item the induction tactic produced two cases
+\item base case:\\
+{\scriptsize\hol{REVERSE (REVERSE []) = []}}
+\item induction step:\\
+{\scriptsize
+\begin{semiverbatim}
+\hol{!h.\ REVERSE (REVERSE (h::l1)) = h::l1}
+--------------------------------------------
+\hol{REVERSE (REVERSE l) = l}
+\end{semiverbatim}}
+
+\item again both goals can be easily proved by rewriting
+\end{itemize}
+
+\begin{block}{Proof Script}
+\begin{semiverbatim}\scriptsize
+val REVERSE_REVERSE = prove (
+``!l.\ REVERSE (REVERSE l) = l``,
+Induct >| [
+  REWRITE_TAC[REVERSE_DEF],
+  ASM_REWRITE_TAC[REVERSE_DEF, REVERSE_APPEND, APPEND]
+]);
+\end{semiverbatim}
+\end{block}
+
+\end{frame}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

@@ -1,0 +1,121 @@
+\documentclass[a4paper,11pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+
+\title{Background Questionaire}
+
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part} Background Questionaire
+\end{center}
+\bigskip
+
+
+Please try to answer the following questions alone and without using any external aids and hand in the results \emph{anonymously}.
+This is no exam.
+Instead, the results are used to adapt the \emph{Interactive Theorem Proving} course to the background and interests of the audience.
+
+
+\section{Functional Programming}
+
+\begin{enumerate}
+\item Write a functional program \texttt{APPEND} that appends two lists. 
+Try to use SML notation. 
+\texttt{APPEND} should satisfy the following example behaviours
+\begin{itemize}
+\item \texttt{APPEND [1,2,3] [4,5] = [1,2,3,4,5]}
+\item \texttt{APPEND [] [1] = [1]}
+\end{itemize}
+
+\item What does \emph{tail-recursion} mean and why is it important for functional programming?
+
+\item Write a tail-recursive version of \texttt{APPEND}.
+ 
+\end{enumerate}
+
+
+\section{Induction Proofs}
+
+\begin{enumerate}
+\item Prove that \texttt{APPEND} is associative (hint: via induction). You can use the following
+      properties of \texttt{APPEND} and \texttt{CONS}. For convenience use the notation \texttt{l1 ++ l2} for \texttt{APPEND l1 l2} and the notation \texttt{x::xs} for \texttt{CONS x xs}. Be very detailed and formal.
+
+\begin{itemize}
+\item \texttt{$\forall$ l.\ [] ++ xs = l}
+\item \texttt{$\forall$ l x xs.\ (x ::\ xs) ++ l = x ::\ (xs ++ l)}
+\end{itemize}
+
+\item Which induction principles do you know? Which one did you use for proving the associativity of \texttt{APPEND}?
+
+\end{enumerate}
+
+
+\section{Logic}
+
+\begin{enumerate}
+\item Explain briefly what's wrong with the following reasoning:
+``No cat has two tails. A cat has one more tail than no cat. Therefore, a cat has three tails.''
+
+\item What's wrong with the following classical example of a false chain syllogism? 
+``Qui bene bibit, bene dormit; qui bene dormit, non peccat; qui non peccat, salvatur; ergo qui bene bibit, salvatur. (Ergo, bibamus!)'' (``Who drinks well, sleeps well. Who sleeps, does not sin. Who does not sin, will go to heaven. Therefore, who drinks well, will go to heaven. (So, let's drink!)'')
+
+
+\item Formalise the following riddle\footnote{found in the German Wikipedia entry for resolution} using first order logic.
+
+It is well known that in ancient times (a) all \emph{Spartans} were \emph{brave} and (b) all \emph{Athenians} were \emph{wise}.
+Spartans and Athenians always fought with each other. So there was (c) no dual citizenship.
+Once upon a time, 3 Greek philosophers met: Diogenes, Platon and Euklid. In contrast to their
+famous namesakes, not much is known about them. We know however, that
+(d) they all came from Sparta or Athens and did not like each other much.
+Being philosophers they however never told a lie; even while insulting each other.
+A few fragments of their squabbles have come to us through the centuries:
+
+\begin{enumerate}
+\item[(e)] Euklid: ``If Platon is from Sparta, then Diogenes is a coward.''
+\item[(f)] Platon: ``Diogenes is a coward, provided Euklid is from Sparta.''
+\item[(g)] Platon: ``If Diogenes is from Athens, then Euklid is a coward.''
+\item[(h)] Diogenes: ``If Platon is from Athens, then Euklid is a moron.''
+\end{enumerate}
+
+Can you reconstruct where each of them came from?
+Prove that Plato is from Sparta using \emph{resolution}.
+
+\item Explain very briefly what \emph{Skolemisation} is?
+\item Let the function \textit{myst} for all \textit{R} of type $\alpha \to \alpha \to \textit{bool}$ be given by 
+
+\[
+  \textit{myst}(\textit{R}) = \lambda a\, b.\ \forall Q. \left(
+\begin{array}{cr}
+      \forall x.\ Q\, x\, x\ & \wedge \\
+      \forall x\,y.\ R\,x\,y\ \Longrightarrow\ Q\, x\, y\ & \wedge \\
+      \forall x\,y\,z.\ (Q\,x\,y\ \wedge\  Q\,y\,z)\ \Longrightarrow\ Q\,x\,z 
+\end{array}
+\right)  \Longrightarrow Q\,a\,b
+\] 
+Which concept does the function \textit{myst} define? If you don't see it, describe as much
+as possible. Which type does it have? What is represented by this type? Explain the formula in English using as high level concepts as possible. 
+
+\end{enumerate}
+
+
+\section{General}
+
+Please write down anything else that you believe is relevant for
+selecting and prioritising topics of the Interactive Theorem Proving
+course.  Do you have any comments or suggestions? Why are you
+attending the course? Do you have a concrete application in mind?
+Have you used interactive theorem provers before? Which ones?  Do you
+have experience with other formal method tools like model checkers,
+SAT solvers, SMT solvers, first order provers \ldots? Which ones?
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

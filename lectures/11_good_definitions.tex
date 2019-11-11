@@ -1,0 +1,511 @@
+\part{Good Definitions}
+
+\frame[plain]{\partpage}
+
+\section{General Discussion}
+
+\begin{frame}
+\frametitle{Importance of Good Definitions}
+\begin{itemize}
+\item using \textit{good} definitions is very important
+\begin{itemize}
+\item good definitions are vital for \emph{clarity}
+\item \emph{proofs} depend a lot on the form of definitions
+\end{itemize}
+\item unluckily, it is hard to state what a good definition is
+\item even harder to come up with good definitions
+\item let's look at it a bit closer anyhow
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Importance of Good Definitions --- Clarity I}
+\begin{itemize}
+\item HOL guarantees that theorems do indeed hold
+\item However, does the theorem mean what you think it does?
+\item you can separate your development in
+\begin{itemize}
+\item main theorems you care for
+\item auxiliary stuff used to derive your main theorems
+\end{itemize}
+\item it is essential to understand your main theorems
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Importance of Good Definitions --- Clarity II}
+\begin{minipage}[t]{.45\textwidth}
+\begin{block}{Guarded by HOL}
+\begin{itemize}
+\item proofs checked
+\item internal, technical definitions
+\item technical lemmata
+\item proof tools
+\end{itemize}
+\end{block}
+\end{minipage}
+\qquad
+\begin{minipage}[t]{.45\textwidth}
+\begin{block}{Manual review needed for}
+\begin{itemize}
+\item meaning of main theorems
+\item meaning of definitions used by main theorems
+\item meaning of types used by main theorems
+\end{itemize}
+\end{block}
+\end{minipage}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Importance of Good Definitions --- Clarity III}
+\begin{itemize}
+\item it is essential to understand your main theorems
+\begin{itemize}
+\item you need to understand all the definitions directly used 
+\item you need to understand the indirectly used ones as well
+\item you need to convince others that you express the intended statement
+\item therefore, it is vital to \alert{use very simple, clear definitions}
+\end{itemize}
+\item defining concepts is often the main development task
+\item checking resulting model against real artefact is vital
+\begin{itemize}
+\item testing via \eg \hol{EVAL}
+\item formal sanity
+\item conformance testing
+\end{itemize}
+\item wrong models are main source of error when using HOL
+\item proofs, auxiliary lemmata and auxiliary definitions
+\begin{itemize}
+\item can be as technical and complicated as you like
+\item correctness is guaranteed by HOL
+\item reviewers don't need to care
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Importance of Good Definitions --- Proofs}
+\begin{itemize}
+\item good definitions can shorten proofs significantly
+\item they improve maintainability
+\item they can improve automation drastically
+\item unluckily for proofs definitions often need to be technical
+\item this contradicts clarity aims
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{How to come up with good definitions}
+\begin{itemize}
+\item unluckily, it is hard to state what a good definition is
+\item it is even harder to come up with them
+\begin{itemize}
+\item there are often many competing interests
+\item a lot of experience and detailed tool knowledge is needed
+\item much depends on personal style and taste
+\end{itemize}
+\item general advice: use more than one definition
+\begin{itemize}
+\item in HOL you can derive equivalent definitions as theorems
+\item define a concept as clearly and easily as possible
+\item derive equivalent definitions for various purposes
+\begin{itemize}
+\item one very close to your favourite textbook
+\item one nice for certain types of proofs
+\item another one good for evaluation
+\item \ldots
+\end{itemize}
+\end{itemize}
+\item lessons from functional programming apply
+\end{itemize}
+\end{frame}
+
+
+\section{Functional Programming}
+
+\begin{frame}
+\frametitle{Good Definitions in Functional Programming}
+
+\begin{block}{Objectives}
+\begin{itemize}
+\item clarity (readability, maintainability)
+\item performance (runtime speed, memory usage, ...)
+\end{itemize}
+\end{block}
+
+\begin{block}{General Advice}
+\begin{itemize}
+\item use the powerful type-system
+\item use many small function definitions
+\item encode invariants in types and function signatures
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions -- no number encodings}
+\begin{itemize}
+\item many programmers familiar with C encode everything as a number
+\item enumeration types are very cheap in SML and HOL
+\item use them instead
+\end{itemize}
+
+\begin{exampleblock}{Example Enumeration Types}\scriptsize
+In C the result of an order comparison is an integer with 3 equivalence classes:
+0, negative and positive integers. In SML and HOL, it is better to use a variant type.
+\begin{semiverbatim}
+val _ = Datatype `ordering = LESS | EQUAL | GREATER`;
+
+val compare_def = Define `
+   (compare LESS    lt eq gt = lt)
+\holAnd{} (compare EQUAL   lt eq gt = eq)
+\holAnd{} (compare GREATER lt eq gt = gt) `;
+
+val list_compare_def = Define `
+   (list_compare cmp [] [] = EQUAL) \holAnd{} (list_compare cmp [] l2 = LESS)
+\holAnd{} (list_compare cmp l1 [] = GREATER)
+\holAnd{} (list_compare cmp (x::l1) (y::l2) = compare (cmp (x:'a) y)
+     (* x<y *) LESS
+     (* x=y *) (list_compare cmp l1 l2)
+     (* x>y *) GREATER) `;
+\end{semiverbatim}
+\end{exampleblock}   
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions --- Isomorphic Types}
+\begin{itemize}
+\item the type-checker is your friend
+\begin{itemize}
+\item it helps you find errors
+\item code becomes more robust
+\item using good types is a great way of writing self-documenting code
+\end{itemize}
+\item therefore, use many types
+\item even use types isomorphic to existing ones
+\end{itemize}
+
+\begin{exampleblock}{Virtual and Physical Memory Addresses}\scriptsize
+Virtual and physical addresses might in a development both be numbers. It is
+still nice to use separate types to avoid mixing them up.
+\begin{semiverbatim}
+val _ = Datatype `vaddr = VAddr num`;
+val _ = Datatype `paddr = PAddr num`;
+
+val virt_to_phys_addr_def = Define `
+  virt_to_phys_addr (VAddr a) = PAddr( \textrm{\textit{translation of}} a )`;
+\end{semiverbatim}
+\end{exampleblock}   
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions --- Record Types I}
+\begin{itemize}
+\item often people use tuples where records would be more appropriate
+\item using large tuples quickly becomes awkward
+\begin{itemize}
+\item it is easy to mix up order of tuple entries
+\begin{itemize}
+\item often types coincide, so type-checker does not help
+\end{itemize}
+\item no good error messages for tuples
+\begin{itemize}
+\item hard to decipher type mismatch messages for long product types
+\item hard to figure out which entry is missing at which position
+\item non-local error messages
+\item variable in last entry can hide missing entries
+\end{itemize}
+\end{itemize}
+\item records sometimes require slightly more proof effort
+\item however, records have many benefits
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions --- Record Types II}
+\begin{itemize}
+\item using records
+\begin{itemize}
+\item introduces field names
+\item provides automatically defined accessor and update functions
+\item leads to better type-checking error messages
+\end{itemize}
+\item records improve readability
+\begin{itemize}
+\item accessors and update functions lead to shorter code
+\item field names act as documentation
+\end{itemize}
+\item records improve maintainability
+\begin{itemize}
+\item improved error messages
+\item much easier to add extra fields
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions --- Encoding Invariants}
+\begin{itemize}
+\item try to encode as many invariants as possible in the types
+\item this allows the type-checker to ensure them for you
+\item you don't have to check them manually any more
+\item your code becomes more robust and clearer
+\end{itemize}
+
+\begin{exampleblock}{Network Connections (Example by Yaron Minsky from Jane Street)}\scriptsize
+Consider the following datatype for network connections. It has many implicit invariants.
+\begin{semiverbatim}
+datatype connection_state = Connected | Disconnected | Connecting;
+
+type connection_info = \{
+  state             : connection_state,
+  server            : inet_address,
+  last_ping_time    : time option,
+  last_ping_id      : int option,
+  session_id        : string option,
+  when_initiated    : time option,
+  when_disconnected : time option
+\}
+\end{semiverbatim}
+\end{exampleblock}   
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions --- Encoding Invariants II}
+\begin{exampleblock}{Network Connections (Example by Yaron Minsky from Jane Street) II}\scriptsize
+The following definition of \texttt{connection\_info} makes the invariants explicit:
+\begin{semiverbatim}
+type connected    = \{ last_ping         : (time * int) option,
+                      session_id        : string \};
+type disconnected = \{ when_disconnected : time \};
+type connecting   = \{ when_initiated    : time \};
+
+datatype connection_state = 
+  Connected of connected
+| Disconnected of disconneted
+| Connecting of connecting;
+
+type connection_info = \{
+  state  : connection_state,
+  server : inet_address
+\}
+\end{semiverbatim}
+\end{exampleblock}   
+\end{frame}
+
+
+
+\section{HOL}
+
+\begin{frame}
+\frametitle{Good Definitions in HOL}
+
+\begin{block}{Objectives}
+\begin{itemize}
+\item clarity (readability)
+\item good for proofs 
+\item performance (good for automation, easily evaluatable, ...)
+\end{itemize}
+\end{block}
+
+\begin{block}{General Advice}
+\begin{itemize}
+\item same advice as for functional programming applies
+\item use even smaller definitions
+\begin{itemize}
+\item introduce auxiliary definitions for important function parts
+\item use extra definitions for important constants
+\item ...
+\end{itemize}
+\item tiny definitions
+\begin{itemize}
+\item allow keeping proof state small by unfolding only needed ones
+\item allow many small lemmata
+\item improve maintainability
+\end{itemize}
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions in HOL II}
+
+\begin{block}{Technical Issues}
+\begin{itemize}
+\item write definitions such that they work well with HOL's tools
+\item this requires you to know HOL well
+\item a lot of experience is required
+\item general advice
+\begin{itemize}
+\item avoid explicit case-expressions
+\item prefer curried functions
+\end{itemize}
+\end{itemize}
+\end{block}
+
+\begin{block}{Example}
+\begin{semiverbatim}\scriptsize
+val ZIP_GOOD_def = Define `(ZIP (x::xs) (y::ys) = (x,y)::(ZIP xs ys)) \holAnd{}
+                           (ZIP _ _ = [])`
+
+val ZIP_BAD1_def = Define `ZIP xs ys = case (xs, ys) of 
+                                         (x::xs, y::ys) => (x,y)::(ZIP xs ys)
+                                       | (_, _) => []`
+
+val ZIP_BAD2_def = Define `(ZIP (x::xs, y::ys) = (x,y)::(ZIP (xs, ys))) \holAnd{}
+                           (ZIP _ = [])`
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Good Definitions in HOL III}
+
+\begin{block}{Multiple Equivalent Definitions}
+\begin{itemize}
+\item satisfy competing requirements by having multiple equivalent definitions
+\item derive them as theorems
+\item initial definition should be as clear as possible
+\begin{itemize}
+\item clarity allows simpler reviews
+\item simplicity reduces the likelihood of errors
+\end{itemize}
+\end{itemize}
+\end{block}
+
+\begin{block}{Example - \texttt{ALL\_DISTINCT}}
+\begin{semiverbatim}\scriptsize
+|- (ALL_DISTINCT [] <=> T) \holAnd{}
+   (!h t. ALL_DISTINCT (h::t) <=> \holNeg{}MEM h t \holAnd{} ALL_DISTINCT t)
+
+|- !l. ALL_DISTINCT l <=> 
+       (!x. MEM x l ==> (FILTER (\$= x) l = [x]))
+
+|- !ls. ALL_DISTINCT ls <=> (CARD (set ls) = LENGTH ls):
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\section{Formal Sanity}
+
+\begin{frame}[fragile]
+\frametitle{Formal Sanity}
+
+\begin{block}{Formal Sanity}
+\begin{itemize}
+\item to ensure correctness test your definitions via \eg \hol{EVAL}
+\item in HOL testing means symbolic evaluation, \ie proving lemmata
+\item \emph{formally proving sanity check lemmata} is very beneficial
+\begin{itemize} 
+\item they should express core properties of your definition
+\item thereby they check your intuition against your actual definitions
+\item these lemmata are often useful for following proofs
+\item using them improves robustness and maintainability of your development
+\end{itemize}
+\item I highly recommend using formal sanity checks
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Formal Sanity Example I}
+
+\begin{semiverbatim}\scriptsize
+> \hol{val ALL_DISTINCT = Define `
+    (ALL_DISTINCT [] = T) \holAnd{}
+    (ALL_DISTINCT (h::t) = \holNeg{}MEM h t \holAnd{} ALL_DISTINCT t)`};
+\end{semiverbatim}
+
+\begin{block}{Example Sanity Check Lemmata}
+\begin{semiverbatim}\scriptsize
+|- ALL_DISTINCT []\smallskip
+|- !x xs. ALL_DISTINCT (x::xs) <=> \holNeg{}MEM x xs \holAnd{} ALL_DISTINCT xs\smallskip
+|- !x. ALL_DISTINCT [x]\smallskip
+|- !x xs. \holNeg{}(ALL_DISTINCT (x::x::xs))\smallskip
+|- !l. ALL_DISTINCT (REVERSE l) <=> ALL_DISTINCT l\smallskip
+|- !x l. ALL_DISTINCT (SNOC x l) <=> \holNeg{}MEM x l \holAnd{} ALL_DISTINCT l\smallskip
+|- !l1 l2. ALL_DISTINCT (l1 ++ l2) <=>
+           ALL_DISTINCT l1 \holAnd{} ALL_DISTINCT l2 \holAnd{} !e. MEM e l1 ==> \holNeg{}MEM e l2
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Formal Sanity Example II 1}
+
+\begin{semiverbatim}\scriptsize
+> \hol{val ZIP_def = Define `
+    (ZIP [] ys = []) \holAnd{} (ZIP xs [] = []) \holAnd{} 
+    (ZIP (x::xs) (y::ys) = (x, y)::(ZIP xs ys))`}
+
+val ZIP_def =
+ |- (!ys. ZIP [] ys = []) \holAnd{} (!v3 v2. ZIP (v2::v3) [] = []) \holAnd{}
+    (!ys y xs x. ZIP (x::xs) (y::ys) = (x,y)::ZIP xs ys)
+\end{semiverbatim}\vspace{-1em}
+\begin{itemize}
+\item above definition of \hol{ZIP} looks straightforward
+\item small changes cause heuristics to produce different theorems
+\item use formal sanity lemmata to compensate
+\end{itemize}
+\begin{semiverbatim}\scriptsize
+> \hol{val ZIP_def = Define `
+    (ZIP xs [] = []) \holAnd{} (ZIP [] ys = []) \holAnd{} 
+    (ZIP (x::xs) (y::ys) = (x, y)::(ZIP xs ys))`}
+
+val ZIP_def =
+   |- (!xs. ZIP xs [] = []) \holAnd{} (!v3 v2. ZIP [] (v2::v3) = []) \holAnd{}
+      (!ys y xs x. ZIP (x::xs) (y::ys) = (x,y)::ZIP xs ys0
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Formal Sanity Example II 2}
+
+\begin{semiverbatim}\scriptsize
+val ZIP_def =
+ |- (!ys. ZIP [] ys = []) \holAnd{} (!v3 v2. ZIP (v2::v3) [] = []) \holAnd{}
+    (!ys y xs x. ZIP (x::xs) (y::ys) = (x,y)::ZIP xs ys)
+\end{semiverbatim}
+\begin{block}{Example Formal Sanity Lemmata}
+\begin{semiverbatim}\scriptsize
+|- (!xs. ZIP xs [] = []) \holAnd{} (!ys. ZIP [] ys = []) \holAnd{}
+   (!y ys x xs. ZIP (x::xs) (y::ys) = (x,y)::ZIP xs ys)\smallskip
+|- !xs ys. LENGTH (ZIP xs ys) = MIN (LENGTH xs) (LENGTH ys)\smallskip
+|- !x y xs ys. MEM (x, y) (ZIP xs ys) ==> (MEM x xs \holAnd{} MEM y ys)\smallskip
+|- !xs1 xs2 ys1 ys2. LENGTH xs1 = LENGTH ys1 ==>
+                     (ZIP (xs1++xs2) (ys1++ys2) = (ZIP xs1 ys1 ++ ZIP xs2 ys2))\smallskip
+...
+\end{semiverbatim}
+\end{block}
+\begin{itemize}
+\item in your proofs use sanity lemmata, not original definition
+\item this makes your development robust against
+\begin{itemize}
+\item small changes to the definition required later
+\item changes to \hol{Define} and its heuristics
+\item bugs in function definition package
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

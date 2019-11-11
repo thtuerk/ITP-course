@@ -1,0 +1,472 @@
+\part{Advanced Definition Principles}
+
+\frame[plain]{\partpage}
+
+\section{Inductive and Coinductive Relations}
+
+\begin{frame}
+\frametitle{Relations}
+
+\begin{itemize}
+\item a relation is a function from some arguments to \texttt{bool}
+\item the following example types are all types of relations:
+\begin{itemize}
+\item \hol{:\ 'a -> 'a -> bool}
+\item \hol{:\ 'a -> 'b -> bool}
+\item \hol{:\ 'a -> 'b -> 'c -> 'd -> bool}
+\item \hol{:\ ('a \# 'b \# 'c) -> bool}
+\item \hol{:\ bool}
+\item \hol{:\ 'a -> bool}
+\end{itemize}
+\item relations are closely related to sets
+\begin{itemize}
+\item \hol{R a b c <=> (a, b, c) IN \{(a, b, c) | R a b c\}}
+\item \hol{(a, b, c) IN S <=> (\textbsl{}a b c.\ (a, b, c) IN S) a b c}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Relations II}
+
+\begin{itemize}
+\item relations are often defined by a set of \emph{rules}
+\begin{minipage}{.9\textwidth}
+\begin{exampleblock}{Definition of Reflexive-Transitive Closure}
+The transitive reflexive closure of a relation \hol{R : 'a -> 'a -> bool} can
+be defined as the least relation \hol{RTC R} that satisfies the following rules:
+\bigskip 
+\begin{center}
+$\inferrule*{\hol{R x y}}{\hol{RTC R x y}}$\quad
+$\inferrule*{\ }{\hol{RTC R x x}}$\quad
+$\inferrule*{\hol{RTC R x y}\\\hol{RTC R y z}}{\hol{RTC R x z}}$
+\end{center}
+\end{exampleblock}
+\end{minipage}
+\item if the rules are monoton, a least and a greatest fix point exists (Knaster-Tarski theorem)
+\item least fixpoints give rise to \emph{inductive relations}
+\item greatest fixpoints give rise to \emph{coinductive relations}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{(Co)inductive Relations in HOL}
+\begin{itemize}
+\item \ml{(Co)IndDefLib} provides infrastructure for defining (co)inductive relations
+\item given a set of rules \hol{Hol\_(co)reln} defines (co)inductive relations
+\item 3 theorems are returned and stored in current theory
+\begin{itemize}
+\item a rules theorem --- it states that the defined constant satisfies the rules
+\item a cases theorem --- this is an equational form of the rules showing that the defined relation is indeed a fixpoint
+\item a (co)induction theorem
+\end{itemize}
+\item additionally a strong (co)induction theorem is stored in current theory
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example: Transitive Reflexive Closure}
+\begin{semiverbatim}\scriptsize
+> \hol{val (RTC_REL_rules, RTC_REL_ind, RTC_REL_cases) = Hol_reln `
+    (!x y.   R x y                          ==> RTC_REL R x y) \holAnd{}
+    (!x.                                        RTC_REL R x x) \holAnd{}
+    (!x y z. RTC_REL R x y \holAnd{} RTC_REL R x z ==> RTC_REL R x z)`}
+
+val RTC_REL_rules = |- !R.
+  (!x y. R x y ==> RTC_REL R x y) \holAnd{} (!x. RTC_REL R x x) \holAnd{}
+  (!x y z. RTC_REL R x y \holAnd{} RTC_REL R x z ==> RTC_REL R x z)
+
+val RTC_REL_cases = |- !R a0 a1.
+  RTC_REL R a0 a1 <=>
+  (R a0 a1 \holOr{} (a1 = a0) \holOr{} ?y. RTC_REL R a0 y \holAnd{} RTC_REL R a0 a1)
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example: Transitive Reflexive Closure II}
+\begin{semiverbatim}\scriptsize
+val RTC_REL_ind = |- !R RTC_REL'.
+  ((!x y. R x y ==> RTC_REL' x y) \holAnd{} (!x. RTC_REL' x x) \holAnd{}
+   (!x y z. RTC_REL' x y \holAnd{} RTC_REL' x z ==> RTC_REL' x z)) ==>
+  (!a0 a1. RTC_REL R a0 a1 ==> RTC_REL' a0 a1)
+
+
+> \hol{val RTC_REL_strongind = DB.fetch "-" "RTC_REL_strongind"}
+
+val RTC_REL_strongind = |- !R RTC_REL'.
+  (!x y. R x y ==> RTC_REL' x y) \holAnd{} (!x. RTC_REL' x x) \holAnd{}
+  (!x y z.
+      RTC_REL R x y \holAnd{} RTC_REL' x y \holAnd{} RTC_REL R x z \holAnd{}
+      RTC_REL' x z ==>
+      RTC_REL' x z) ==>
+  ( !a0 a1. RTC_REL R a0 a1 ==> RTC_REL' a0 a1)
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example: \hol{EVEN}}
+\begin{semiverbatim}\scriptsize
+> \hol{val (EVEN_REL_rules, EVEN_REL_ind, EVEN_REL_cases) = Hol_reln 
+  `(EVEN_REL 0) \holAnd{} (!n. EVEN_REL n ==> (EVEN_REL (n + 2)))`};
+
+val EVEN_REL_cases =
+ |- !a0. EVEN_REL a0 <=> (a0 = 0) \holOr{} ?n. (a0 = n + 2) \holAnd{} EVEN_REL n
+
+val EVEN_REL_rules =
+ |- EVEN_REL 0 \holAnd{} !n. EVEN_REL n ==> EVEN_REL (n + 2)
+
+val EVEN_REL_ind = |- !EVEN_REL'.
+   (!a0.
+      EVEN_REL' a0 ==>
+      (a0 = 0) \holOr{} ?n. (a0 = n + 2) \holAnd{} EVEN_REL' n) ==>
+   (!a0. EVEN_REL' a0 ==> EVEN_REL a0)
+\end{semiverbatim}
+\begin{itemize}
+\item notice that in this example there is exactly one fixpoint
+\item therefore for these rule, the induction and coinductive relation coincide
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example: Dummy Relations}
+\begin{semiverbatim}\scriptsize
+> \hol{val (DF_rules, DF_ind, DF_cases) = Hol_reln 
+  `(!n. DF (n+1) ==> (DF n))`}
+
+> \hol{val (DT_rules, DT_coind, DT_cases) = Hol_coreln 
+  `(!n. DT (n+1) ==> (DT n))`}
+
+val DT_coind =
+  |- !DT'. (!a0. DT' a0 ==> DT' (a0 + 1)) ==> !a0. DT' a0 ==> DT a0
+
+val DF_ind =
+  |- !DF'. (!n. DF' (n + 1) ==> DF' n) ==> !a0. DF a0 ==> DF' a0
+
+val DT_cases = |- !a0. DT a0 <=> DT (a0 + 1):
+val DF_cases = |- !a0. DF a0 <=> DF (a0 + 1):
+\end{semiverbatim}
+\begin{itemize}
+\item notice that for both \hol{DT} and \hol{DF} we used essentially a non-terminating recursion
+\item \hol{DT} is always true, \ie \hol{|- !n.\ DT n}
+\item \hol{DF} is always false, \ie \hol{|- !n.\ \holNeg{}(DF n)}
+\end{itemize}
+\end{frame}
+
+
+
+\section{Quotient Types}
+
+\begin{frame}
+\frametitle{Quotient Types}
+
+\begin{itemize}
+\item \ml{quotientLib} allows to define types as quotients of existing types with respect to \emph{partial equivalence relation}
+\item each equivalence class becomes a value of the new type
+\item partiality allows ignoring certain types
+\item \ml{quotientLib} allows to lift definitions and lemmata as well
+\item details are technical and won't be presented here
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Quotient Types Example}
+
+\begin{itemize}
+\item let's assume we have an implementation of finite sets of numbers as
+binary trees with
+\begin{itemize}
+\item type \hol{binset}
+\item binary tree invariant \hol{WF\_BINSET :\ binset -> bool}
+\item constant \hol{empty\_binset}
+\item add and member functions \hol{add :\ num -> binset -> binset},\\ \hol{mem :\ binset -> num -> bool}
+\end{itemize}
+\item we can define a partial equivalence relation by\\
+\hol{binset\_equiv b1 b2 := (\\
+\-\ \ WF\_BINSET b1 \holAnd{} WF\_BINSET b2 \holAnd{}\\
+\-\ \ (!n.\ mem b1 n <=> mem b2 n))}
+\item this allows defining a quotient type of sets of numbers
+\item functions \hol{empty\_binset}, \hol{add} and \hol{mem} as well as lemmata about them can be lifted automatically
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Quotient Types Summary}
+
+\begin{itemize}
+\item quotient types are sometimes very useful
+\begin{itemize}
+\item \eg rational numbers are defined as a quotient type
+\end{itemize}
+\item there is powerful infrastructure for them
+\item many tasks are automated
+\item however, the details are technical and won't be discussed here
+\end{itemize}
+
+\end{frame}
+
+\section{Case Expressions}
+
+\begin{frame}
+\frametitle{Pattern Matching / Case Expressions}
+
+\begin{itemize}
+\item pattern matching ubiquitous in functional programming
+\item pattern matching is a powerful technique
+\item it helps to write concise, readable definitions
+\item very handy and frequently used for interactive theorem proving in higher-order logic (HOL)
+\item however, it is \alert{not directly supported} by HOL's logic
+\item representations in HOL
+\begin{itemize}
+\item sets of equations as produced by \hol{Define}
+\item decision trees (printed as case-expressions)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{TFL / \texttt{Define}}
+
+\begin{itemize}
+\item we have already used top-level pattern matches with the TFL package
+\item \hol{Define} is able to handle them
+\begin{itemize}
+\item all the semantic complexity is taken care of
+\item no special syntax or functions remain
+\item no special rewrite rules, reasoning tools needed afterwards
+\end{itemize}
+\item \hol{Define} produces a set of equations
+\item this is the recommended way of using pattern matching in HOL
+\end{itemize}
+
+\begin{exampleblock}{Example}
+\begin{semiverbatim}\scriptsize
+> \hol{val ZIP_def = Define `(ZIP (x::xs) (y::ys) = (x,y)::(ZIP xs ys)) \holAnd{}
+                        (ZIP [] [] = [])`}
+val ZIP_def = |- (!ys y xs x. ZIP (x::xs) (y::ys) = (x,y)::ZIP xs ys) \holAnd{}
+                 (ZIP [] [] = [])
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Case Expressions}
+
+\begin{itemize}
+\item sometimes one does not want to use this compilation by TFL
+\begin{itemize}
+\item one wants to use pattern-matches somewhere nested in a term
+\item one might not want to introduce a new constant
+\item one might want to avoid using TFL for technical reasons
+\end{itemize}
+\item in such situations, case-expressions can be used
+\item their syntax is similar to the syntax used by SML
+\end{itemize}
+
+\begin{exampleblock}{Example}
+\begin{semiverbatim}\scriptsize
+> \hol{val ZIP_def = Define `ZIP xs ys = case (xs, ys) of 
+                                         (x::xs, y::ys) => (x,y)::(ZIP xs ys)
+                                       | ([], []) => []`}
+val ZIP_def = |- !ys xs. ZIP xs ys =
+     case (xs,ys) of
+       ([],[]) => []
+     | ([],v4::v5) => ARB
+     | (x::xs',[]) => ARB
+     | (x::xs',y::ys') => (x,y)::ZIP xs' ys'
+\end{semiverbatim}
+\end{exampleblock}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Case Expressions II}
+
+\begin{itemize}
+\item the datatype package define case-constants for each datatype
+\item the parser contains a pattern compilation algorithm
+\item case-expressions are by the parser compiled to decision trees using case-constants
+\item pretty printer prints these decision trees as case-expressions again 
+\end{itemize}
+
+\begin{exampleblock}{Example}
+\begin{semiverbatim}\scriptsize
+val ZIP_def = |- !ys xs. ZIP xs ys =
+     pair_CASE (xs,ys)
+       (\textbsl{}v v1.
+          list_CASE v (list_CASE v1 [] (\textbsl{}v4 v5. ARB))
+            (\textbsl{}x xs'. list_CASE v1 ARB (\textbsl{}y ys'. (x,y)::ZIP xs' ys'))):
+\end{semiverbatim}
+\end{exampleblock}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Case Expression Issues}
+
+\begin{itemize}
+\item using case expressions feels very natural to functional programmers
+\item case-expressions allow concise, well-readable definitions
+\item however, there are also many drawbacks
+\item there is large, complicated code in the parser and pretty printer
+\begin{itemize}
+\item this is outside the kernel
+\item parsing a pretty-printed term can result in a non $\alpha$-equivalent one
+\item there are bugs in this code (see \eg Issue \#416 reported 8 May 2017)
+\end{itemize}
+\item the results are hard to predict
+\begin{itemize}
+\item heuristics involved in creating decision tree
+\item results sometimes hard to predict
+\item however, it is beneficial that proofs follow this internal, volatile structure
+\end{itemize} 
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Case Expression Issues II}
+
+\begin{itemize}
+\item technical issues
+\begin{itemize}
+\item it is tricky to reason about decision trees
+\item rewrite rules about case-constants needs to be fetched from \hol{TypeBase}
+\begin{itemize}
+\item alternative \hol{srw\_ss} often does more than wanted
+\end{itemize}
+\item partially evaluated decision-trees are not pretty printed nicely any more
+\end{itemize}
+\item underspecified functions
+\begin{itemize}
+\item decision trees are exhaustive
+\item they list underspecified cases explicitly with value \hol{ARB}
+\item this can be lengthy
+\item \hol{Define} in contrast hides underspecified cases
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Case Expression Example I}
+
+\begin{block}{Partial Proof Script}
+\begin{semiverbatim}\scriptsize
+val _ = prove (``!l1 l2. 
+  (LENGTH l1 = LENGTH l2) ==> 
+  ((ZIP l1 l2 = []) <=> ((l1 = []) \holAnd{} (l2 = [])))``,
+
+ONCE_REWRITE_TAC [ZIP_def] 
+\end{semiverbatim}
+\end{block}
+
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\scriptsize
+!l1 l2.
+  (LENGTH l1 = LENGTH l2) ==>
+  (((case (l1,l2) of
+       ([],[]) => []
+     | ([],v4::v5) => ARB
+     | (x::xs',[]) => ARB
+     | (x::xs',y::ys') => (x,y)::ZIP xs' ys') =
+    []) <=> (l1 = []) \holAnd{} (l2 = []))
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Case Expression Example IIa -- partial evaluation}
+
+\begin{block}{Partial Proof Script}
+\begin{semiverbatim}\scriptsize
+val _ = prove (``!l1 l2. 
+  (LENGTH l1 = LENGTH l2) ==> 
+  ((ZIP l1 l2 = []) <=> ((l1 = []) \holAnd{} (l2 = [])))``,
+
+ONCE_REWRITE_TAC [ZIP_def] >>
+REWRITE_TAC[pairTheory.pair_case_def] >> BETA_TAC
+\end{semiverbatim}
+\end{block}
+
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\scriptsize
+!l1 l2.
+  (LENGTH l1 = LENGTH l2) ==>
+  (((case l1 of
+       [] => (case l2 of [] => [] | v4::v5 => ARB)
+     | x::xs' => case l2 of [] => ARB | y::ys' => (x,y)::ZIP xs' ys') =
+    []) <=> (l1 = []) \holAnd{} (l2 = []))
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Case Expression Example IIb --- following tree structure}
+
+\begin{block}{Partial Proof Script}
+\begin{semiverbatim}\scriptsize
+val _ = prove (``!l1 l2. 
+  (LENGTH l1 = LENGTH l2) ==> 
+  ((ZIP l1 l2 = []) <=> ((l1 = []) \holAnd{} (l2 = [])))``,
+
+ONCE_REWRITE_TAC [ZIP_def] >>
+Cases_on `l1` >| [
+  REWRITE_TAC[listTheory.list_case_def] 
+\end{semiverbatim}
+\end{block}
+
+
+\begin{block}{Current Goal}
+\begin{semiverbatim}\scriptsize
+!l2.
+  (LENGTH [] = LENGTH l2) ==>
+  (((case ([],l2) of
+       ([],[]) => []
+     | ([],v4::v5) => ARB
+     | (x::xs',[]) => ARB
+     | (x::xs',y::ys') => (x,y)::ZIP xs' ys') =
+    []) <=> (l2 = []))
+\end{semiverbatim}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Case Expression Summary}
+
+\begin{itemize}
+\item case expressions are natural to functional programmers
+\item they allow concise, readable definitions
+\item however, fancy parser and pretty-printer needed
+\begin{itemize}
+\item trustworthiness issues
+\item sanity check lemmata advisable
+\end{itemize}
+\item reasoning about case expressions can be tricky and lengthy
+\item proofs about case expression often hard to maintain
+\item therefore, use top-level pattern matching via \hol{Define} if easily possible
+\end{itemize}
+\end{frame}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

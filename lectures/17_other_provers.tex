@@ -1,0 +1,266 @@
+\part{Other Interactive Theorem Provers}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Other Interactive Theorem Provers}
+
+\begin{itemize}
+\item at the beginning we very briefly discussed other theorem provers
+\item now, with more knowledge about HOL 4 we can discuss other provers and their differences to HOL 4 in more detail
+\item HOL 4 is a good system
+\item it is very well suited for the tasks required by the PROSPER project
+\item however, as always \emph{choose the right tool for your task}
+\item you might find a different prover more suitable for your needs
+\item hopefully this course has enabled you to learn to use other provers on your own without much trouble
+\end{itemize}
+\end{frame}
+
+
+\section{HOL 4}
+\begin{frame}
+\frametitle{HOL 4}
+
+\begin{itemize}
+\item based on classical higher order logic
+\item logic is sweet spot between expressivity and automation
+\pro very trustworthy thanks to LCF approach
+\pro simple enough to understand easily
+\pro very easy to write custom proof tools, \ie own automation
+\pro reasonably fast and efficient
+\item decent automation
+\con no user-interface
+\con no special proof language
+\con no IDE, very little editor support
+\end{itemize}
+\end{frame}
+
+
+\section{HOL Omega}
+\begin{frame}
+\frametitle{HOL Omega}
+
+\begin{itemize}
+\item mainly developed by Peter Homeier \emph{\url{http://www.trustworthytools.com/}}
+\item extension of HOL 4
+\begin{itemize}
+\pro logic extended by kinds
+\pro allows type operator variables
+\pro allows quantification over type variables
+\end{itemize}
+\pro sometimes handy to \eg model category theory
+\con not very actively developed
+\con HOL 4 usually sufficient and better supported
+\end{itemize}
+\end{frame}
+
+
+\section{HOL Light}
+\begin{frame}
+\frametitle{HOL Light}
+
+\begin{itemize}
+\item mainly developed by John Harrison
+\item \emph{\url{https://github.com/jrh13/hol-light}}
+\item cleanup and reimplementation of HOL in OCaml
+\item little legacy code
+\item however, still very similar to HOL 4
+\pro much better automation for real analysis
+\pro cleaner
+\con OCaml introduces some minor issues with trustworthiness
+\con some other libs and tools of HOL 4 are missing
+\con HOL 4 has bigger community
+\end{itemize}
+\end{frame}
+
+
+\section{Isabelle}
+\begin{frame}
+\frametitle{Isabelle}
+
+\begin{itemize}
+\item Isabelle is also a descendant of LCF
+\item originally developed by Larry Paulson in Cambridge\\
+\emph{\url{https://www.cl.cam.ac.uk/research/hvg/Isabelle/}}
+\item meanwhile also developed at TU Munich by Tobias Nipkow
+\emph{\url{http://www21.in.tum.de}}
+\item huge contributions by Markarius Wenzel\\
+\emph{\url{http://sketis.net}}
+\item Isabelle is a generic theorem prover
+\item most used instantiation is Isabelle/HOL
+\item other important one is Isabelle/ZF
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Isabelle / HOL - Logic}
+
+\begin{itemize}
+\item logic of Isabelle / HOL very similar to HOL's logic
+\begin{itemize}
+\item meta logic leads to meta level quantification and object level quantification
+\pro type classes
+\pro powerful module system
+\pro existential variables
+\item \ldots
+\end{itemize}
+\item Isabelle is implemented using the LCF approach
+\item it uses SML (Poly/ML)
+\item many original tools (\eg simplifier) similar to HOL
+\item focused as HOL on equational reasoning
+\item many tools are exchanged between HOL 4 and Isabelle / HOL
+\begin{itemize}
+\item Metis
+\item Sledgehammer
+\item \ldots
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Isabelle / HOL - Engineering}
+
+\begin{itemize}
+\pro a lot of engineering went into Isabelle/HOL
+\pro it has a very nice GUI
+\begin{itemize}
+\item IDE based on JEdit
+\item special language for proofs (Isar)
+\item good error messages
+\item \ldots
+\end{itemize}
+\pro very good automation
+\pro efficient implementations
+\pro many libraries (Archive of Formal Proof)
+\pro excellent code extraction
+\pro good documentation
+\pro easy for new users
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Isabelle / HOL - Isar}
+
+\begin{itemize}
+\item special proof language Isar used
+\item this allows to write \emph{declarative proofs}
+\begin{itemize}
+\item very high level 
+\item easy to read by humans
+\item very robust 
+\item very good tool support
+\item \ldots
+\end{itemize}
+\con however, tactical proofs are not easily accessible any more
+\begin{itemize}
+\item many intermediate goals need to be stated (declared) explicitly
+\item this can be very tedious
+\item tools like verification condition generators are hard to use
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Isabelle / HOL - Drawbacks}
+
+\begin{itemize}
+\pro Isabelle/HOL provides excellent out of the box automation
+\pro it provides a very nice user interface
+\pro it is very nice for new users
+\con however, this comes at a price
+\begin{itemize}
+\item multiple layers added between kernel and user
+\item hard to understand all these layers
+\item a lot of knowledge is needed to write your own automation
+\end{itemize}
+\con hard to write own automation
+\con Isabelle/HOL due to focus on declarative proofs not well suited for \eg PROSPER
+\end{itemize}
+\end{frame}
+
+\section{Coq}
+\begin{frame}
+\frametitle{Coq}
+
+\begin{itemize}
+\item Coq is a proof assistant using the Calculus of Inductive Constructions
+\item inspired by HOL 88
+\item backward proofs as in HOL 4 used
+\item however, very big differences
+\begin{itemize}
+\item much more powerful logic
+\item dependent types
+\item constructive logic
+\item not exactly following LCF approach
+\end{itemize}
+\pro good user interface
+\pro very good community support
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Coq - Logic}
+
+\begin{itemize}
+\pro Coq's logic is very powerful
+\pro it is very natural for mathematicians
+\pro very natural for language theory
+\pro allows reasoning about proofs
+\item allows to add axioms as needed
+\item as a result, Coq is used often to
+\begin{itemize}
+\item formalise mathematics
+\item formalise programming language semantics
+\item reason about proof theory
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Coq - Drawbacks}
+
+\begin{itemize}
+\item Coq's power comes at a price
+\con there is not much automation
+\con proofs tend to be very long
+\begin{itemize}
+\item they are very simple though
+\pro comparably easy to maintain
+\end{itemize}
+\con Coq's proof checking can be very slow
+\con when verifying programs or hardware you notice that HOL was designed for this purpose
+\begin{itemize}
+\item need for \emph{obvious} termination is tedious
+\item missing automation
+\item very slow
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\section{Conclusion}
+
+\begin{frame}
+\frametitle{Summary}
+
+\begin{itemize}
+\item there are many good theorem provers out there
+\item \emph{pick the right tool for your purpose}
+\item the HOL theorem prover is a good system for many purposes
+\item for PROSPER it is a good choice
+\item I encourage you to continue learning about HOL and interactive theorem proving in general
+\item if you have any questions feel free to contact me (Thomas Tuerk, email \emph{thomas@tuerk-brechen.de})
+\end{itemize}
+
+\end{frame}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

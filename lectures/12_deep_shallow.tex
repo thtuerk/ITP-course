@@ -1,0 +1,195 @@
+\part{Deep and Shallow Embeddings}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Deep and Shallow Embeddings}
+
+\begin{itemize}
+\item often one models some kind of formal language
+\item important design decision: use \emph{deep} or \emph{shallow} embedding
+\item in a nutshell:
+\begin{itemize}
+\item shallow embeddings just model semantics
+\item deep embeddings model syntax as well
+\end{itemize}
+\item a shallow embedding directly uses the HOL logic
+\item a deep embedding
+\begin{itemize}
+\item defines a datatype for the syntax of the language
+\item provides a function to map this syntax to a semantic
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example: Embedding of Propositional Logic I}
+
+\begin{itemize}
+\item propositional logic is a subset of HOL
+\item a shallow embedding is therefore trivial
+\end{itemize}
+
+\begin{semiverbatim}\scriptsize
+val sh_true_def    = Define `sh_true = T`;
+val sh_var_def     = Define `sh_var (v:bool) = v`;
+val sh_not_def     = Define `sh_not b = \holNeg{}b`;
+val sh_and_def     = Define `sh_and b1 b2 = (b1 \holAnd{} b2)`;
+val sh_or_def      = Define `sh_or b1 b2 = (b1 \holOr{} b2)`;
+val sh_implies_def = Define `sh_implies b1 b2 = (b1 ==> b2)`;
+\end{semiverbatim}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example: Embedding of Propositional Logic II}
+
+\begin{itemize}
+\item we can also define a datatype for propositional logic
+\item this leads to a deep embedding
+
+\begin{semiverbatim}\scriptsize
+val _ = Datatype `bvar = BVar num`
+val _ = Datatype `prop = d_true | d_var bvar | d_not prop
+                       | d_and prop prop | d_or prop prop
+                       | d_implies prop prop`;
+
+val _ = Datatype `var_assignment = BAssign (bvar -> bool)`
+val VAR_VALUE_def = Define `VAR_VALUE (BAssign a) v = (a v)` 
+                     
+val PROP_SEM_def = Define `
+  (PROP_SEM a d_true = T) \holAnd{}
+  (PROP_SEM a (d_var v) = VAR_VALUE a v) \holAnd{}
+  (PROP_SEM a (d_not p) = \holNeg{}(PROP_SEM a p)) \holAnd{}
+  (PROP_SEM a (d_and p1 p2) = (PROP_SEM a p1 \holAnd{} PROP_SEM a p2)) \holAnd{}
+  (PROP_SEM a (d_or p1 p2) = (PROP_SEM a p1 \holOr{} PROP_SEM a p2)) \holAnd{}
+  (PROP_SEM a (d_implies p1 p2) = (PROP_SEM a p1 ==> PROP_SEM a p2))`
+\end{semiverbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Shallow vs.\ Deep Embeddings}
+
+\newcommand{\dummyitem}{\item[] \leavevmode\phantom{gg}}
+
+\begin{minipage}[t]{.46\textwidth}
+\begin{block}{Shallow}
+\begin{itemize}
+\item quick and easy to build
+\item extensions are simple
+\end{itemize}
+\end{block}
+\end{minipage}\qquad
+\begin{minipage}[t]{.46\textwidth}
+\begin{block}{Deep}
+\begin{itemize}
+\item can reason about syntax
+\item allows verified implementations
+\item sometimes tricky to define 
+\begin{itemize}
+\item \eg bound variables
+\end{itemize}
+\end{itemize}
+\end{block}
+\end{minipage}
+\bigskip
+
+\begin{block}{Important Questions for Deciding}
+\begin{itemize}
+\item Do I need to reason about syntax?
+\item Do I have hard to define syntax like bound variables?
+\item How much time do I have?
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example: Embedding of Propositional Logic III}
+
+\begin{itemize}
+\item with deep embedding one can easily formalise syntactic properties like
+\begin{itemize}
+\item Which variables does a propositional formula contain?
+\item Is a formula in negation-normal-form (NNF)?
+\end{itemize}
+\item with shallow embeddings
+\begin{itemize}
+\item syntactic concepts can't be defined in HOL
+\item however, they can be defined in SML
+\item no proofs about them possible
+\end{itemize}
+\end{itemize}
+
+\begin{semiverbatim}\scriptsize
+val _ = Define `
+  (IS_NNF (d_not d_true) = T) \holAnd{} (IS_NNF (d_not (d_var v)) = T) \holAnd{}
+  (IS_NNF (d_not _) = F) \holAnd{}\medskip
+  (IS_NNF d_true = T) \holAnd{} (IS_NNF (d_var v) = T) \holAnd{}
+  (IS_NNF (d_and p1 p2) = (IS_NNF p1 \holAnd{} IS_NNF p2)) \holAnd{}
+  (IS_NNF (d_or p1 p2) = (IS_NNF p1 \holAnd{} IS_NNF p2)) \holAnd{}
+  (IS_NNF (d_implies p1 p2) = (IS_NNF p1 \holAnd{} IS_NNF p2))`
+\end{semiverbatim}
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Verified vs.\ Verifying Program}
+\newcommand{\dummyitem}{\item[] \leavevmode\phantom{gg}}
+
+\begin{minipage}[t]{.46\textwidth}
+\begin{block}{Verified Programs}
+\begin{itemize}
+\item are formalised in HOL
+\item their properties have been proven once and for all
+\item all runs have proven properties
+\item are usually less sophisticated, since they need verification
+\item is what one wants ideally
+\item often require deep embedding
+\end{itemize}
+\end{block}
+\end{minipage}\qquad
+\begin{minipage}[t]{.46\textwidth}
+\begin{block}{Verifying Programs}
+\begin{itemize}
+\item are written in meta-language
+\item they produce a separate proof for each run
+\item only certain that current run has properties
+\item allow more flexibility, \eg fancy heuristics
+\item good pragmatic solution
+\item shallow embedding fine
+\end{itemize}
+\end{block}
+\end{minipage}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Summary Deep vs.\ Shallow Embeddings}
+\begin{itemize}
+\item deep embeddings require more work
+\item they however allow reasoning about syntax
+\begin{itemize}
+\item induction and case-splits possible
+\item a semantic subset can be carved out syntactically
+\end{itemize}
+\item syntax sometimes hard to define for deep embeddings
+\item combinations of deep and shallow embeddings common
+\begin{itemize}
+\item certain parts are deeply embedded
+\item others are embedded shallowly
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

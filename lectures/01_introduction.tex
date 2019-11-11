@@ -1,0 +1,261 @@
+\part{Introduction}
+
+\frame[plain]{\partpage}
+
+\section{Motivation}
+
+\begin{frame}
+\frametitle{Motivation}
+\begin{itemize}
+\item Complex systems almost certainly contain bugs.
+\item Critical systems (\eg avionics) need to meet very high standards.
+\item It is infeasible in practice to achieve such high standards just by testing.
+\item Debugging via testing suffers from diminishing returns.
+\end{itemize}
+\bigskip
+
+\begin{raggedleft}
+\emph{``Program testing can be used to show the presence\\ 
+of bugs, but never to show their absence!''\\
+--- Edsger W. Dijkstra\\}
+\end{raggedleft}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Famous Bugs}
+\begin{itemize}
+\item Pentium FDIV bug (1994)\\(missing entry in lookup table, \$475 million damage)
+\item Ariane V explosion (1996)\\(integer overflow, \$1 billion prototype destroyed)
+\item Mars Climate Orbiter (1999)\\(destroyed in Mars orbit, mixup of units pound-force and newtons)
+\item Knight Capital Group Error in Ultra Short Time Trading (2012)\\
+(faulty deployment, repurposing of critical flag, \$440 lost in 45 min on stock exchange)
+\item \ldots
+\end{itemize}
+
+\begin{block}{Fun to read}
+\url{http://www.cs.tau.ac.il/~nachumd/verify/horror.html}
+\url{https://en.wikipedia.org/wiki/List_of_software_bugs}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Proof}
+\begin{itemize}
+\item proof can show absence of errors in design
+\item but proofs talk about a \emph{design}, not a \emph{real system}
+\item $\Rightarrow$ testing and proving complement each other
+\end{itemize}
+\bigskip
+
+\begin{raggedleft}
+\emph{``As far as the laws of mathematics\\
+refer to reality, they are not certain;\\
+and as far as they are certain,\\
+they do not refer to reality.''\\
+--- Albert Einstein\\}
+\end{raggedleft}
+
+\end{frame}
+
+
+\section{Types of Proofs}
+
+\begin{frame}
+\frametitle{Mathematical vs.\ Formal Proof}
+
+\begin{columns}
+\begin{column}{0.45\textwidth}
+
+\begin{block}{Mathematical Proof}
+\begin{itemize}
+\item informal, convince other mathematicians
+\item checked by community of domain experts
+\item subtle errors are hard to find
+\item often provide some new insight about our world
+\item often short, but require creativity and a brilliant idea
+\end{itemize}
+\end{block}
+\end{column}
+
+\begin{column}{0.45\textwidth}
+\begin{block}{Formal Proof}
+\begin{itemize}
+\item formal, rigorously use a logical formalism 
+\item checkable by \textit{stupid} machines
+\item very reliable
+\item often contain no new ideas and no amazing insights
+\item often long, very tedious, but largely trivial
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+
+\begin{center}
+\textbf{We are interested in formal proofs in this lecture.}
+\end{center}
+
+\end{frame}
+
+% \begin{frame}
+% \frametitle{Detail Level of Formal Proof}
+
+% \begin{center}
+% In \emph{Principia Mathematica} it takes 300 pages to prove 1+1=2.
+% \bigskip
+
+% This is nicely illustrated in \emph{Logicomix - An Epic Search for Truth}.
+% \includegraphics[width=10cm]{images/1+12_Logicomix.png}
+% \end{center}
+% \end{frame}
+
+\begin{frame}
+\frametitle{Automated vs Manual (Formal) Proof}
+
+\begin{block}{Fully Manual Proof}
+\begin{itemize}
+\item very tedious; one has to grind through many trivial but detailed proofs
+\item easy to make mistakes
+\item hard to keep track of all assumptions and preconditions  
+\item hard to maintain, if something changes (see Ariane V)
+\end{itemize}
+\end{block}
+
+\begin{block}{Automated Proof}
+\begin{itemize}
+\item amazing success in certain areas
+\item but still often infeasible for interesting problems
+\item hard to get insights in case a proof attempt fails
+\item even if it works, it is often not that automated
+\begin{itemize}
+\item run automated tool for a few days
+\item abort, change command line arguments to use different heuristics
+\item run again and iterate till you find a set of heuristics that prove it fully automatically in a few seconds
+\end{itemize}
+\end{itemize}
+\end{block}
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Interactive Proofs}
+
+\begin{itemize}
+\item combine strengths of manual and automated proofs
+\item many different options to combine automated and manual proofs
+\begin{itemize}
+\item mainly check existing proofs (\eg HOL Zero)
+\item user mainly provides lemmata statements, computer searches proofs using previous lemmata and very few hints (\eg ACL 2)
+\item most systems are somewhere in the middle
+\end{itemize}
+
+\item typically the human user 
+\begin{itemize}
+\item provides insights into the problem
+\item structures the proof
+\item provides main arguments
+\end{itemize}
+\item typically the computer
+\begin{itemize}
+\item checks proof
+\item keeps track of all used assumptions
+\item provides automation to grind through lengthy, but trivial proofs
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Typical Interactive Proof Activities}
+
+\begin{itemize}
+\item provide precise definitions of concepts
+\item state properties of these concepts
+\item prove these properties
+\begin{itemize}
+\item human provides insight and structure
+\item computer does book-keeping and automates simple proofs
+\end{itemize}
+\item build and use libraries of formal definitions and proofs
+\begin{itemize}
+\item formalisations of mathematical theories like
+\begin{itemize}
+\item lists, sets, bags, \ldots
+\item real numbers
+\item probability theory
+\end{itemize}
+\item specifications of real-world artefacts like 
+\begin{itemize}
+\item processors
+\item programming languages
+\item network protocols
+\end{itemize}
+\item reasoning tools
+\end{itemize}
+\end{itemize}
+
+\begin{center}
+\textbf{There is a strong connection with programming.\\Lessons learned in Software Engineering apply.}
+\end{center}
+\end{frame}
+
+
+\section{Interactive Theorem Provers}
+
+\begin{frame}
+\frametitle{Different Interactive Provers}
+
+\begin{itemize}
+\item there are many different interactive provers, \eg
+\begin{itemize}
+\item Isabelle/HOL 
+\item Coq 
+\item PVS
+\item HOL family of provers
+\item ACL2
+\item \ldots 
+\end{itemize}
+\item important differences
+\begin{itemize}
+\item the formalism used
+\item level of trustworthiness
+\item level of automation
+\item libraries
+\item languages for writing proofs
+\item user interface
+\item \ldots
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Which theorem prover is the best one? :-)}
+
+\begin{itemize}
+\item there is no \alert{best} theorem prover
+\item better question: Which is the \alert{best one for a certain purpose}?
+\item important points to consider
+\begin{itemize}
+\item existing libraries
+\item used logic 
+\item level of automation
+\item user interface
+\item importance development speed versus trustworthiness
+\item How familiar are you with the different provers?
+\item Which prover do people in your vicinity use?
+\item your personal preferences
+\item \ldots 
+\end{itemize}
+\end{itemize}
+
+\bottomstatement{In this course we use the HOL theorem prover,\\ because it is used by the TCS group.}
+\end{frame}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "full"
+%%% End:

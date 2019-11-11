@@ -1,0 +1,116 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+
+\input{../hol_commands.inc}
+
+\title{Exercise 3}
+
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part}ITP Exercise 3
+\webversion{}{\\\small{due Friday 12th May}}
+\end{center}
+\bigskip
+
+
+\section{Self-Study}
+
+\subsection{Tactics and Tacticals}
+You should read background information on the tactics mentioned in the
+lecture. For each of the tactics and tacticals mentioned on the
+slides, read the entry in the description manual.
+
+\subsection{hol-mode}
+
+Carefully study the \texttt{Goalstack} submenu of hol-mode. Learn the keycodes to
+set goals, expand tactics, undo the last tactic expansion, restart the current proof and
+drop the current goal.
+
+\subsection{num and list Theories}
+
+We will use the natural number theory \texttt{numTheory} as well as the list theories
+\texttt{listTheory} and \texttt{rich\_listTheory} a lot. Please familiarise yourself with
+these HOL theories (e.\,g.\ by looking at their signature in the HTML version of the HOL Reference). I also recommend reading up on other common theories like \texttt{optionTheory}, \texttt{oneTheory} and \texttt{pairTheory}. These won't be needed for this weeks exercises, though.
+
+
+\section{Backward Proofs}
+
+Part of this exercise is searching for useful existing lemmata (\eg
+useful rewrite rules).  Another part is understanding the effect of
+different rewrite rules and their combination.  Even if you have
+experience with using HOL, please refrain from using automated rewrite
+tools that spoil these purposes and have not been covered in the
+lecture yet. Please don't use HOL's simplifier and especially don't
+use stateful simp-sets.  Similarly, please don't use the compute lib
+via \eg \texttt{EVAL\_TAC}.
+
+For these exercise, it might be beneficial to open the modules \texttt{listTheory} and \texttt{rich\_listTheory} via \ml{open listTheory rich\_listTheory}. You will notice that when opening them a lot of definitions are printed. This can consume quite some time when opening many large theories. Play around with the hol-mode commands
+\texttt{Send region to HOL - hide non-errors} and \texttt{Quite - hide output except errors} to avoid this printout and the associated waiting time.
+
+
+\subsection{Replay Proofs from Lecture}
+
+If you never did a tactical proof in HOL before, I recommend following the example interactive proofs from Part VIII. 
+Type them in your own HOL session, make the same mistakes shown in the lecture. Use hol-mode to control the goalStack via
+commands like expand, back-up, set goal, drop goal. Get a feeling for how to interactively develop a tactical proof.
+
+This exercise is optional. If you are confident enough, feel free to skip it.
+
+\subsection{Formalise Induction Proofs from Exercise 1}
+
+For exercise sheet 1, some simple properties of appending lists were proved with pen and paper via induction. Let's now try to prove them formally using HOL. Prove \hol{!l.\ l ++ [] = l} via induction using the definition of \hol{APPEND} (\hol{++}). Similarly, prove the associativity of \texttt{APPEND}, \ie prove \hol{!l1 l2 l3.\ l1 ++ (l2 ++ l3) = (l1 ++ l2) ++ l3}. 
+
+\subsection{Reverse}
+
+In HOL, \texttt{revAppend} is called \hol{REV}. Using any useful lemmata you can find, prove
+the lemma \hol{!l1 l2.\ LENGTH (REV l1 l2) = (LENGTH l1 + LENGTH l2)}. Now, let us as an exercise reprove the existing lemmata \hol{REVERSE\_REV} and \hol{REV\_REVERSE\_LEM}. This means, prove, first prove \hol{!l1 l2.\ REV l1 l2 = REVERSE l1 ++ l2}. Then prove \hol{!l.\ REVERSE l = REV l []} using this theorem. You should not use the theorems \texttt{REVERSE\_REV} or \texttt{REV\_REVERSE\_LEM} in these proofs.
+
+
+\subsection{Length of Drop}
+
+Prove \hol{!l1 l2.\ LENGTH (DROP (LENGTH l2) (l1 ++ l2)) = LENGTH l1} with induction, \ie
+without using lemmata like \texttt{LENGTH\_DROP}. Do one proof with \texttt{Induct\_on} and a very similar proof with \texttt{Induct}. This is a bit tricky.
+Please play around with the proof for some time. If you can't figure it out, look at the hints at the end of this exercise sheet.
+
+
+\subsection{Making Change}
+
+On exercise sheet 1, you were asked to implement a function \texttt{make\_change} in SML. Let's now define it in HOL and prove some properties. Define the function \texttt{MAKE\_CHANGE} in HOL via
+
+\begin{verbatim}
+val MAKE_CHANGE_def = Define `
+  (MAKE_CHANGE [] a = if (a = 0) then [[]] else []) /\
+  (MAKE_CHANGE (c::cs) a = (
+     (if (c <= a /\ 0 < a) then
+       (MAP (\l. c::l) (MAKE_CHANGE cs (a - c)))
+     else []) ++ (MAKE_CHANGE cs a)))`;
+\end{verbatim}
+
+Prove that \hol{!cs.\ MAKE\_CHANGE cs 0 = [[]]} and
+\hol{!cs a l.\ MEM l (MAKE\_CHANGE cs a) ==> (SUM l = a)} hold.
+
+
+\section{Hints}
+
+\subsection{Length of Drop}
+
+For proving \hol{!l1 l2.\ LENGTH (DROP (LENGTH l2) (l1 ++ l2)) = LENGTH l1} induction on
+the structure of \hol{l2} is a good strategy. However, one needs to be careful that \hol{l1} stays
+universally quantified. Expanding naively with \hol{GEN\_TAC >> Induct} will
+remove the needed universal quantification of \hol{l1}. 
+
+To solve this, you can either use \hol{Induct\_on `l2`} or get rid of both universal quantifiers and then introduce them in a different order again. This is achieved by \hol{REPEAT GEN\_TAC >> SPEC\_TAC (``l1:'a list``, ``l1:'a list``) >> SPEC\_TAC (``l2:'a list``, ``l2:'a list``)}.
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

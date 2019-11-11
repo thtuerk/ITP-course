@@ -1,0 +1,125 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+
+\input{../hol_commands.inc}
+
+\title{Exercise 6}
+\def\ttwebflag{}
+\begin{document}
+
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part}ITP Exercise 6
+\webversion{}{\\\small{due Friday 2nd June}}
+\end{center}
+\bigskip
+
+\webversion{}{
+\section{Exercise 5}
+
+Please finish question 1.3 and 1.4 from exercise 5. You might find the simplifier helpful.
+
+
+\section{Final Project}
+
+We have 3 more weeks to go on the lecture. For the last 3 weeks, I would like to set a small project to solve for everyone. There will be a default project (see below). However, if you want you can also propose your own project. This has to be approved by me, before you can start working on it. It should satisfy the following requirements:
+
+\begin{itemize}
+\item You should build a formal model of some description. This description can \eg be a natural language text or some computer program.
+\item You should test your model against the description / implementation.
+\item You should prove some interesting properties.
+\item It should be do-able in a reasonable amount of time (ideally 3 weeks). You have to either convince me that it is doable in 3 weeks or worth both your and my additional time. 
+\end{itemize}
+
+Please read the default project proposal below. Either decide to do this project or think of an alternative final project. In any case, discuss your choice with me. \webversion{}{\textbf{Whoever has not discussed a final project with me by June 2nd will be forced to do the default project.}}
+
+\clearpage
+}
+
+\webversion{\section{Final Project}}{\section{Default Project - Regular Expressions in HOL}}
+
+There is a fun paper on regular expressions: \emph{A Play on Regular
+  Expressions} by Sebastian Fischer, Frank Huch and Thomas Wilke
+published as a functional pearl at ICFP 2010
+(\url{http://www-ps.informatik.uni-kiel.de/~sebf/pub/regexp-play.html}).
+In this paper an implementation of marked regular expressions in
+Haskell is described. The task is to formalise the simple parts of
+this work in HOL, verify the correctness of the implementation and
+export trustworthy code into an SML library.
+
+You should develop this project such that (in theory) it could be
+added to the examples directory of HOL. Therefore, I want you to
+create a git-repository for your project\webversion{}{ and give me access to it}. You
+should create one or more HOL-theories that can be compiled by
+Holmake. There will be multiple SML files as well. These should
+compile decently and have a signature. Please provide a selftest for
+your development. Write decent documentation. There should be a (very
+short) \texttt{README} as well as sufficient comments in the code.
+
+
+
+\subsection{Basic Regular Expression Semantics}
+
+Read Act 1, Scene 1. Implement the \texttt{Reg} datatype in HOL. Like later in the paper,
+replace the type \texttt{Char} with a free type variable \texttt{'a}. The intention is to define
+regular expressions on lists of type \texttt{'a}. Define a function \texttt{language\_of :\ 'a Reg -> ('a list) set} that returns the language accepted by a regular expression. The definition of
+\texttt{language\_of} should be as clean and simple as possible. It does not need to be executable.
+
+\subsection{Executable Semantics}
+Now define the function \texttt{accept} in HOL. While doing so replace the type \texttt{String} with \texttt{'a list} to match the changes to \texttt{Reg}. You will need to implement the auxiliary functions \texttt{parts} and \texttt{split}. Test your definitions and apply formal sanity checks.
+
+\subsection{Code Extraction and Conformance Testing}
+
+Familiarise yourself with \texttt{EmitML}. Use it to extract your datatype \texttt{Reg} and the function \texttt{accept} to ML. Test \texttt{accept} against the regular expression implementation in \texttt{regexpMatch.sml} that comes with HOL.
+
+\texttt{EmitML} has not been discussed in the lecture and is not well documented. Part of this challenge is to find information for yourself about HOL libraries and learn from examples and source code.
+
+\subsection{Correctness Proof}
+
+Prove that \texttt{accept} and \texttt{language\_of} agree with each other, \ie prove the statement \texttt{!r w.\ accept r w <=> w IN (language\_of r)}.
+
+\subsection{Marked Regular Expressions}
+
+Continue reading the paper. Act 1, Scene 2 is interesting, but we are here not interested in weights. Instead focus in Act 2, Scene 1. Implement a datatype for marked regular expressions called \texttt{MReg}. Use first the simple version with caching the values of \texttt{empty} and \texttt{final}. Provide a function \texttt{MARK\_REG :\ 'a Reg -> 'a MReg} that turns a regular expression into a marked expression without any marks set. Implement a function \texttt{acceptM :\ 'a MReg -> 'a list -> bool} following the idea of the \texttt{accept} function in the paper.
+
+Test your definitions and perform formal sanity checks.
+
+
+\subsection{Correctness Proof Marked Regular Expressions}
+
+Show that \texttt{acceptM} is correct, \ie show
+\texttt{!r w.\ acceptM (MARK\_REG r) w <=> w IN (language\_of r)}.
+
+
+\subsection{Cached Marked Regular Expressions}
+
+Now let's also implement the caching of \texttt{empty} and \texttt{final}. Call the resulting datatypes \texttt{CMReg}. It is tempting to define mutually recursive types \texttt{CMReg} and \texttt{CMRe} as in the paper. However, HOL's automation won't work well on such a type, so I advice manually encoding a cache (\ie adding extra boolean arguments to the constructors of \texttt{MReg}). Write a function \texttt{CACHE\_REG :\ 'a MReg -> 'a CMReg} that turns a marked regular expression into a cached marked one with valid caches. Implement a function \texttt{acceptCM :\ 'a CMReg -> 'a list -> bool} that is similar to \texttt{acceptM}, but more efficient due to using the caches.
+
+Test your definitions and perform formal sanity checks. As part of formal sanity, 
+define a well-formedness predicate for cached marked regular expressions stating that the cached values for \texttt{empty} and \texttt{final} are correct. 
+Moreover, define the inverse function \texttt{UNCACHE\_REG :\ 'a CMReg -> 'a MReg} of \texttt{CACHE\_REG} and show that these functions are really inverses. 
+
+\subsection{Correctness Proof Caches}
+
+Show that \texttt{acceptCM} is correct, \ie show
+\texttt{!r w.\ acceptCM (CACHE\_REG (MARK\_REG r)) w <=> w IN (language\_of r)}.
+
+
+\subsection{SML Library}
+
+Use \texttt{EmitML} to extract your code to SML. Provide an interface for regular expressions on strings. The interface should contain a type for regular expression on strings similar to \texttt{char Reg}. It should provide a function \texttt{match} that checks whether such a regular expression matches a given string. Build 4 instances of this interface, one with the regular expression library \texttt{regexpMatch.sml} and ones for \texttt{accept}, \texttt{acceptM} and \texttt{acceptCM}. Write some simple tests and run them against all these instantiations (\eg via a functor). Perform some simple performance measurements.
+
+
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

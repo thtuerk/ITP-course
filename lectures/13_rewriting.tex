@@ -1,0 +1,1208 @@
+\part{Rewriting}
+
+\frame[plain]{\partpage}
+
+\begin{frame}
+\frametitle{Rewriting in HOL}
+
+\begin{itemize}
+\item simplification via rewriting was already a strength of Edinburgh LCF
+\item it was further improved for Cambridge LCF
+\item HOL inherited this powerful rewriter
+\item equational reasoning is still the main workhorse
+\item there are many different equational reasoning tools in HOL
+\begin{itemize}
+\item \hol{Rewrite} library\\
+inherited from Cambridge LCF\\you have seen it in the form of \hol{REWRITE\_TAC}
+\item \hol{computeLib} --- fast evaluation\\
+build for speed, optimised for ground terms\\seen in the form of \hol{EVAL}
+\item \hol{simpLib} --- Simplification\\
+sophisticated rewrite engine, HOL's main workhorse\\
+not discussed in this lecture, yet
+\item \ldots
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\section{Rewrite Library}
+
+\begin{frame}
+\frametitle{Semantic Foundations}
+\begin{itemize}
+\item we have seen primitive inference rules for equality before
+
+\begin{columns}
+\begin{column}{.35\textwidth}
+\begin{center}
+$\inferrule*[right=COMB]{\Gamma \entails s = t\\\Delta \entails u = v \\\\ \textit{types fit}}{\Gamma \cup \Delta \entails s(u) = t(v)}$\\[1em]
+$\inferrule*[right=TRANS] {\Gamma \entails s = t\\\Delta \entails t = u}{\Gamma \cup \Delta \entails s = u}$\\[1em]
+\end{center}
+\end{column}
+\begin{column}{.25\textwidth}
+\begin{center}
+$\inferrule*[right=ABS]{\Gamma \entails s = t\\x\ \textit{not free in}\ \Gamma}{\Gamma \entails \lambda{}x.\ s = \lambda{}x.\ t}$\\[1em]
+$\inferrule* [right=REFL] {\ }{\entails t = t}$\\[1em]
+\end{center}
+\end{column}
+\end{columns}\medskip
+\item these rules allow us to replace any subterm with an equal one
+\item this is the core of rewriting
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Conversions}
+\begin{itemize}
+\item in HOL, equality reasoning is implemented by \emph{conversions}
+\item a conversion is a SML function of type \hol{term -> thm}
+\item given a term \hol{t}, a conversion
+\begin{itemize}
+\item produces a theorem of the form \hol{|- t = t'}
+\item raises an \hol{UNCHANGED} exception or
+\item fails, \ie raises an \hol{HOL\_ERR} exception
+\end{itemize}
+\end{itemize}
+\begin{exampleblock}{Example}
+\begin{semiverbatim}\scriptsize
+> \hol{BETA\_CONV ``(\textbsl{}x. SUC x) y``}
+val it = |- (\textbsl{}x. SUC x) y = SUC y
+
+> \hol{BETA\_CONV ``SUC y``}
+Exception-HOL_ERR ... raised
+
+> \hol{REPEATC BETA\_CONV ``SUC y``}
+Exception- UNCHANGED raised
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conversionals}
+\begin{itemize}
+\item similar to tactics and tacticals there are \emph{conversionals} for conversions
+\item conversionals allow building conversions from simpler ones
+\item there are many of them
+\begin{itemize}
+\item \hol{THENC}
+\item \hol{ORELSEC}
+\item \hol{REPEATC}
+\item \hol{TRY\_CONV}
+\item \hol{RAND\_CONV}
+\item \hol{RATOR\_CONV}
+\item \hol{ABS\_CONV}
+\item \ldots
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Depth Conversionals}
+\begin{itemize}
+\item for rewriting depth-conversionals are important
+\item a depth-conversional applies a conversion to all subterms
+\item there are many different ones
+\begin{itemize}
+\item \hol{ONCE\_DEPTH\_CONV c} --- top down, applies \hol{c} once at highest possible positions in distinct subterms
+\item \hol{TOP\_SWEEP\_CONV c} --- top down, like \hol{ONCE\_DEPTH\_CONV}, but continues processing rewritten terms
+\item \hol{TOP\_DEPTH\_CONV c} --- top down, like \hol{TOP\_SWEEP\_CONV}, but try top-level again after change
+\item \hol{DEPTH\_CONV c} --- bottom up, recurse over subterms, then apply \hol{c} repeatedly at top-level
+\item \hol{REDEPTH\_CONV c} --- bottom up, like \hol{DEPTH\_CONV}, but revisits subterms
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{\hol{REWR\_CONV}}
+\begin{itemize}
+\item it remains to rewrite terms at top-level
+\item this is achieved by \hol{REWR\_CONV}
+\item given a term \hol{t} and a theorem \hol{|- t1 = t2}, \texttt{REWR\_CONV t thm}
+\begin{itemize}
+\item searches an instantiation of term and type variables such that \hol{t1} becomes $\alpha$-equivalent to \hol{t}
+\item fails, if no instantiation is found
+\item otherwise, instantiate the theorem and get \hol{|- t1' = t2'}
+\item return theorem \hol{|- t = t2'}
+\end{itemize}
+\begin{exampleblock}{Example}\scriptsize
+term \hol{LENGTH [1;2;3]}, theorem \hol{|- LENGTH ((x:'a)::xs) = SUC (LENGTH xs)}\\
+found type instantiation: \hol{[``:'a`` |-> ``:num``]}\\
+found term instantiation: \hol{[``x:num`` |-> ``1``; ``xs`` |-> ``[2;3]``]}\\
+returned theorem: \hol{|- LENGTH [1;2;3] = SUC (LENGTH [2;3])}
+\end{exampleblock}
+
+\item the tricky part is finding the instantiation
+\item this problem is called the (term) \emph{matching} problem
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Term Matching}
+\begin{itemize}
+\item given term \hol{t\_org} and a term \hol{t\_goal} try to find
+\begin{itemize}
+\item type substitution \hol{ty\_s}
+\item term substitution \hol{tm\_s}
+\end{itemize}
+\item such that \hol{subst tm\_s (inst ty\_s t\_org) \aequiv t\_goal} 
+\item this can be easily implemented by a recursive search
+\bigskip
+
+{\small
+\begin{tabular}{lll}
+\emph{\texttt{t\_org}} & \emph{\texttt{t\_goal}} & \emph{action} \\
+\texttt{t1\_org t2\_org} & \texttt{t1\_goal t2\_goal} & recurse \\
+\texttt{t1\_org t2\_org} & otherwise & fail \\
+\texttt{\textbsl{}x.\ t\_org x} & \texttt{\textbsl{}y.\ t\_goal y} & match types of \texttt{x}, \texttt{y} and recurse \\
+\texttt{\textbsl{}x.\ t\_org x} & otherwise & fail \\
+\texttt{const} & same \texttt{const} & match types \\
+\texttt{const} & otherwise & fail \\
+\texttt{var} & anything & try to bind \texttt{var}, \\ & & take care of existing bindings
+\end{tabular}
+}
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Examples Term Matching}
+
+{\scriptsize
+\begin{tabular}{lll}
+\emph{\texttt{t\_org}} & \emph{\texttt{t\_goal}} & \emph{substs}\\
+\texttt{LENGTH ((x:'a)::xs)} & \texttt{LENGTH [1;2;3]} & 
+  \texttt{'a $\to$ num}, 
+  \texttt{x $\to$ 1}, 
+  \texttt{xs $\to$ [2;3]} \\
+\texttt{[]:'a list} & \texttt{[]:'b list} & 
+  \texttt{'a $\to$ 'b} \\
+\texttt{0} & \texttt{0} & 
+  \texttt{empty substitution} \\
+\texttt{b \holAnd{} T} & \texttt{(P (x:'a) ==> Q) \holAnd{} T} & 
+  \texttt{b $\to$ P x ==> Q} \\
+\texttt{b \holAnd{} b} & \texttt{P x \holAnd{} P x} & 
+  \texttt{b $\to$ P x} \\
+\texttt{b \holAnd{} b} & \texttt{P x \holAnd{} P y} & 
+  fail \\
+\texttt{!x:num.\ P x \holAnd{} Q x} & \texttt{!y:num.\ P' y \holAnd{} Q' y} &
+  \texttt{P $\to$ P'}, 
+  \texttt{Q $\to$ Q'} \\  
+\texttt{!x:num.\ P x \holAnd{} Q x} & \texttt{!y.\ (2 = y) \holAnd{} Q' y} &
+  \texttt{P $\to$ (\$= 2)}, 
+  \texttt{Q $\to$ Q'} \\  
+\texttt{!x:num.\ P x \holAnd{} Q x} & \texttt{!y.\ (y = 2) \holAnd{} Q' y} &
+ fail
+\end{tabular}
+}
+\bigskip
+
+\begin{itemize}
+\item it is often very annoying that the last match in the list above fails
+\item it prevents us for example rewriting \hol{!y.\ (2 = y) \holAnd{} Q y} to\\
+   \hol{(!y.\ (2=y)) \holAnd{} (!y.\ Q y)}
+ \item Can we do better? Yes, with higher order (term) matching.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Higher Order Term Matching}
+
+\begin{itemize}
+\item term matching searches for substitutions such that \texttt{t\_org} becomes $\alpha$-equivalent to \texttt{t\_goal}
+\item \emph{higher order term matching} searches for substitutions such that \texttt{t\_org} becomes \texttt{t\_subst} such that the $\beta\eta$-normalform of \texttt{t\_subst} is $\alpha$-equivalent equivalent to $\beta\eta$-normalform of \texttt{t\_goal}, \ie
+
+\textbf{higher order term matching is aware of the semantics of $\lambda$}
+\bigskip
+
+$\begin{array}{ll}
+\beta\text{-reduction} & (\lambda x.\ f)\ y = f [y/x] \\
+\eta\text{-conversion} & (\lambda x.\ f\ x) = f \text{ where $x$ is not free in $f$}
+\end{array}$\bigskip
+\item the HOL implementation expects \texttt{t\_org} to be a \emph{higher-order pattern}
+\begin{itemize}
+\item \texttt{t\_org} is $\beta$-reduced
+\item if \texttt{X} is a variable that should be instantiated, then all arguments should be
+ distinct variables
+\end{itemize}
+\item for other forms of \texttt{t\_org}, HOL's implementation might fail
+\item higher order matching is used by \ml{HO\_REWR\_CONV}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Examples Higher Order Term Matching}
+
+{\scriptsize
+\begin{tabular}{lll}
+\emph{\texttt{t\_org}} & \emph{\texttt{t\_goal}} & \emph{substs}\\
+\texttt{!x:num.\ P x \holAnd{} Q x} & \texttt{!y.\ (y = 2) \holAnd{} Q' y} &
+  \texttt{P $\to$ (\textbsl{}y.\ y = 2)}, 
+  \texttt{Q $\to$ Q'} \\  
+\texttt{!x.\ P x \holAnd{} Q x} & \texttt{!x.\ P x \holAnd{} Q x \holAnd{} Z x} &
+  \texttt{Q $\to$ \textbsl{}x.\ Q x \holAnd{} Z x} \\  
+\texttt{!x.\ P x \holAnd{} Q} & \texttt{!x.\ P x \holAnd{} Q x} &
+  \text{fails} \\  
+\texttt{!x.\ P (x, x)} & \texttt{!x.\ Q x} &
+  \text{fails} \\  
+\texttt{!x.\ P (x, x)} & \texttt{!x.\ FST (x,x) = SND (x,x)} &
+  \texttt{P $\to$ \textbsl{}xx.\ FST xx = SND xx}
+\end{tabular}}
+
+\bottomstatement{Don't worry, it might look complicated, but\\in practice it is easy to get a feeling for higher order matching.}
+\end{frame}
+
+\begin{frame}
+\frametitle{\ml{Rewrite} Library}
+
+\begin{itemize}
+\item the rewrite library combines \hol{REWR\_CONV} with depth conversions
+\item there are many different conversions, rules and tactics
+\item at their core, they all work very similarly
+\begin{itemize}
+\item given a list of theorems, a set of rewrite theorems is derived
+\begin{itemize} 
+\item split conjunctions
+\item remove outermost universal quantification
+\item introduce equations by adding \hol{= T} (or \hol{= F}) if needed
+\end{itemize} 
+\item \texttt{REWR\_CONV} is applied to all the resulting rewrite theorems
+\item a depth-conversion is used with resulting conversion
+\end{itemize}
+\item for performance reasons an efficient indexing structure is used
+\item by default implicit rewrites are added 
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{\ml{Rewrite} Library II}
+
+\begin{itemize}
+\item \hol{REWRITE\_CONV}
+\item \hol{REWRITE\_RULE}
+\item \hol{REWRITE\_TAC}
+\item \hol{ASM\_REWRITE\_TAC}
+\item \hol{ONCE\_REWRITE\_TAC}
+\item \hol{PURE\_REWRITE\_TAC}
+\item \hol{PURE\_ONCE\_REWRITE\_TAC}
+\item \ldots
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{\ml{Ho\_Rewrite} Library}
+
+\begin{itemize}
+\item similar to \ml{Rewrite} lib, but uses higher order matching
+\item internally uses \ml{HO\_REWR\_CONV}
+\item similar conversions, rules and tactics as \ml{Rewrite} lib
+\begin{itemize}
+\item \hol{Ho\_Rewrite.REWRITE\_CONV}
+\item \hol{Ho\_Rewrite.REWRITE\_RULE}
+\item \hol{Ho\_Rewrite.REWRITE\_TAC}
+\item \hol{Ho\_Rewrite.ASM\_REWRITE\_TAC}
+\item \hol{Ho\_Rewrite.ONCE\_REWRITE\_TAC}
+\item \hol{Ho\_Rewrite.PURE\_REWRITE\_TAC}
+\item \hol{Ho\_Rewrite.PURE\_ONCE\_REWRITE\_TAC}
+\item \ldots
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Examples \ml{Rewrite} and \ml{Ho\_Rewrite} Library}
+
+\begin{semiverbatim}\scriptsize
+> \hol{REWRITE\_CONV [LENGTH] ``LENGTH [1;2]``} 
+val it = |- LENGTH [1; 2] = SUC (SUC 0)
+
+> \hol{ONCE\_REWRITE\_CONV [LENGTH] ``LENGTH [1;2]``} 
+val it = |- LENGTH [1; 2] = SUC (LENGTH [2])
+
+> \hol{REWRITE\_CONV [] ``A \holAnd{} A \holAnd{} \holNeg{}A``} 
+Exception- UNCHANGED raised
+
+> \hol{PURE\_REWRITE\_CONV [NOT\_AND] ``A \holAnd{} A \holAnd{} \holNeg{}A``} 
+val it = |- A \holAnd{} A \holAnd{} \holNeg{}A <=> A \holAnd{} F
+
+> \hol{REWRITE\_CONV [NOT\_AND] ``A \holAnd{} A \holAnd{} \holNeg{}A``} 
+val it = |- A \holAnd{} A \holAnd{} \holNeg{}A <=> F
+
+> \hol{REWRITE\_CONV [FORALL_AND_THM] ``!x. P x \holAnd{} Q x \holAnd{} R x``} 
+Exception- UNCHANGED raised
+
+> \hol{Ho_Rewrite.REWRITE\_CONV [FORALL_AND_THM] ``!x. P x \holAnd{} Q x \holAnd{} R x``} 
+val it = |- !x. P x \holAnd{} Q x \holAnd{} R x <=> (!x. P x) \holAnd{} (!x. Q x) \holAnd{} (!x. R x)
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Summary \ml{Rewrite} and \ml{Ho\_Rewrite} Library}
+
+\begin{itemize}
+\item the \ml{Rewrite} and \ml{Ho\_Rewrite} library provide powerful infrastructure for term rewriting
+\item thanks to clever implementations they are reasonably efficient
+\item basics are easily explained
+\item however, efficient usage needs some experience
+\end{itemize}
+\end{frame}
+
+
+\section{Term Rewriting Systems}
+
+\begin{frame}
+\frametitle{Term Rewriting Systems}
+
+\begin{itemize}
+\item to use rewriting efficiently, one needs to understand about term rewriting systems
+\item this is a large topic
+\item unluckily, it cannot be covered here in detail for time constraints
+\item however, in practise you quickly get a feeling
+\item important points in practise
+\begin{itemize}
+\item ensure termination of your rewrites
+\item make sure they work nicely together
+\end{itemize} 
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Term Rewriting Systems --- Termination}
+
+\begin{block}{Theory}
+\begin{itemize}
+\item choose well-founded order $\prec$
+\item for each rewrite theorem \hol{|- t1 = t2} ensure \hol{t2 $\prec$ t1}
+\end{itemize}
+\end{block}
+
+\begin{block}{Practice}
+\begin{itemize}
+\item informally define for yourself what \emph{simpler} means
+\item ensure each rewrite makes terms simpler
+\item good heuristics
+\begin{itemize}
+\item subterms are simpler than whole term
+\item use an order on functions
+\end{itemize}
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Termination --- Subterm examples}
+
+\begin{itemize}
+\item a proper subterm is always simpler
+\begin{itemize}
+\item \hol{!l.\ APPEND [] l = l}
+\item \hol{!n.\ n + 0 = n}
+\item \hol{!l.\ REVERSE (REVERSE l) = l}
+\item \hol{!t1 t2.\ if T then t1 else t2 <=> t1}
+\item \hol{!n.\ n * 0 = 0}
+\end{itemize}\medskip
+\item the right hand side should not use extra vars, throwing parts away is usually simpler
+\begin{itemize}
+\item \hol{!x xs.\ (SNOC x xs = []) = F}
+\item \hol{!x xs.\ LENGTH (x::xs) = SUC (LENGTH xs)}
+\item \hol{!n x xs.\ DROP (SUC n) (x::xs) = DROP n xs}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Termination --- use simpler terms}
+
+\begin{itemize}
+\item it is useful to consider some functions simple and other complicated
+\item replace complicated ones with simple ones
+\item never do it in the opposite direction
+\item clear examples
+\begin{itemize}
+\item \hol{|- !m n.\ MEM m (COUNT\_LIST n) <=> (m < n)}
+\item \hol{|- !ls n.\ (DROP n ls = []) <=> (n >= LENGTH ls)}
+\end{itemize}\medskip
+\item unclear example
+\begin{itemize}
+\item \hol{|- !L.\ REVERSE L = REV L []}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Termination --- Normalforms}
+
+\begin{itemize}
+\item some equations can be used in both directions
+\item one should decide on one direction
+\item this implicitly defines a \emph{normalform} one wants terms to be in
+\item examples
+\begin{itemize}
+\item \hol{|- !f l.\ MAP f (REVERSE l) = REVERSE (MAP f l)}
+\item \hol{|- !l1 l2 l3.\ l1 ++ (l2 ++ l3) = l1 ++ l2 ++ l3}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Termination --- Problematic rewrite rules}
+
+\begin{itemize}
+\item some equations immediately lead to non-termination, \eg
+\begin{itemize}
+\item \hol{|- !m n.\ m + n = n + m}
+\item \hol{|- !m.\ m = m + 0}
+\end{itemize}\medskip
+\item slightly more subtle are rules like
+\begin{itemize}
+\item \hol{|- !n.\ fact n = if (n = 0) then 1 else n * fact(n-1)}
+\end{itemize}\medskip
+\item often combination of multiple rules leads to non-termination\\
+ this is especially problematic when adding to predefined sets of rewrites 
+\begin{itemize}
+\item \hol{|- !m n p.\ m + (n + p) = (m + n) + p} and \\
+      \hol{|- !m n p.\ (m + n) + p = m + (n + p)}
+\end{itemize}\medskip
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Rewrites working together}
+
+\begin{itemize}
+\item rewrite rules should not compete with each other
+\item if a term \hol{ta} can be rewritten to \hol{ta1} and \hol{ta2} applying different rewrite rules, then \hol{ta1} and \hol{ta2} it should be possible to further rewrite them both to a common \hol{tb}
+\item this can often be achieved by adding extra rewrite rules
+\end{itemize}
+
+\begin{exampleblock}{Example}
+Assume we have the rewrite rules \hol{|- DOUBLE n = n + n} and\\
+\hol{|- EVEN (DOUBLE n) = T}.\\
+With these the term \hol{EVEN (DOUBLE 2)} can be rewritten to 
+\begin{itemize}
+\item \hol{T} or 
+\item \hol{EVEN (2 + 2)}.
+\end{itemize}
+To avoid a hard to predict result, \hol{EVEN (2+2)} should be rewritten to \hol{T}. Adding an extra rewrite rule \hol{|- EVEN (n + n) = T} achieves this.
+\end{exampleblock}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Rewrites working together II}
+\begin{itemize}
+\item to design rewrite systems that work well, normalforms are vital
+\item a term is in \emph{normalform}, if it cannot be rewritten any further
+\item one should have a clear idea what the normalform of common terms looks like
+\item all rules should work together to establish this normalform
+\item the right-hand-side of each rule should be in normalform
+\item the left-hand-side should not be simplifiable by any other rule
+\item the order in which rules are applied should not influence the final result
+\end{itemize}
+\end{frame}
+
+
+\section{\texttt{computeLib}}
+
+\begin{frame}
+\frametitle{\hol{computeLib}}
+
+\begin{itemize}
+\item \hol{computeLib} is the library behind \hol{EVAL}
+\item it is a rewriting library designed for evaluating ground terms (\ie terms without variables) efficiently
+\item it uses a call-by-value strategy similar to SML's
+\item it uses first order term matching
+\item it performs $\beta$ reduction in addition to rewrites
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{\hol{compset}}
+
+\begin{itemize}
+\item \hol{computeLib} uses \hol{compset}s to store its rewrites
+\item a \hol{compset} stores
+\begin{itemize}
+\item rewrite rules
+\item extra conversions
+\end{itemize}
+\item the extra conversions are guarded by a term pattern for efficiency
+\item users can define their own compsets
+\item however, \hol{computeLib} maintains one special compset called \hol{the\_compset}
+\item \hol{the\_compset} is used by \hol{EVAL} 
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{\hol{EVAL}}
+
+\begin{itemize}
+\item \hol{EVAL} uses \hol{the\_compset}
+\item tools like the \hol{Datatype} or \hol{TFL} libraries automatically extend \hol{the\_compset}
+\item this way, \hol{EVAL} knows about (nearly) all types and functions
+\item one can extended \hol{the\_compset} manually as well
+\item rewrites exported by \hol{Define} are good for ground terms but may lead to non-termination for non-ground terms
+\item \hol{zDefine} prevents \hol{TFL} from automatically extending \hol{the\_compset}
+\end{itemize}
+\end{frame}
+
+
+\section{\texttt{simpLib}}
+
+\begin{frame}
+\frametitle{\hol{simpLib}}
+
+\begin{itemize}
+\item \hol{simpLib} is a sophisticated rewrite engine
+\item it is HOL's main workhorse
+\item it provides
+\begin{itemize}
+\item higher order rewriting
+\item usage of context information
+\item conditional rewriting
+\item arbitrary conversions
+\item support for decision procedures
+\item simple heuristics to avoid non-termination
+\item fancier preprocessing of rewrite theorems
+\item \ldots
+\end{itemize}
+\item it is very powerful, but compared to \hol{Rewrite} lib sometimes slow
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Basic Usage I}
+
+\begin{itemize}
+\item \hol{simpLib} uses \emph{simpsets}
+\item simpsets are special datatypes storing
+\begin{itemize}
+\item rewrite rules
+\item conversions
+\item decision procedures
+\item congruence rules
+\item \ldots
+\end{itemize}
+\item in addition there are simpset-fragments
+\item simpset-fragments contain similar information as simpsets
+\item fragments can be added to and removed from simpsets
+\item common usage: basic simpset combined with one or more simpset-fragments, \eg
+ \begin{itemize}
+ \item \hol{list\_ss ++ pairSimps.gen\_beta\_ss}
+ \item \hol{std\_ss ++ QI\_ss}
+ \item \ldots
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Basic Usage II}
+
+\begin{itemize}
+\item a call to the simplifier takes as arguments
+\begin{itemize}
+\item a simpset
+\item a list of rewrite theorems
+\end{itemize}  
+\item common high-level entry points are
+\begin{itemize}
+\item \hol{SIMP\_CONV ss thmL} --- conversion
+\item \hol{SIMP\_RULE ss thmL} --- rule
+\item \hol{SIMP\_TAC ss thmL} --- tactic without considering assumptions
+\item \hol{ASM\_SIMP\_TAC ss thmL} --- tactic using assumptions to simplify goal
+\item \hol{FULL\_SIMP\_TAC ss thmL} --- tactic simplifying assumptions with each other and goal with assumptions
+\item \hol{REV\_FULL\_SIMP\_TAC ss thmL} --- similar to \texttt{FULL\_SIMP\_TAC} but with reversed order of assumptions
+\end{itemize}
+\item there are many derived tools not discussed here
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Basic Simplifier Examples}
+
+\begin{semiverbatim}\scriptsize
+> \hol{SIMP_CONV bool_ss [LENGTH] ``LENGTH [1;2]``} 
+val it = |- LENGTH [1; 2] = SUC (SUC 0)
+
+> \hol{SIMP_CONV std_ss [LENGTH] ``LENGTH [1;2]``} 
+val it = |- LENGTH [1; 2] = 2
+
+> \hol{SIMP_CONV list_ss [] ``LENGTH [1;2]``} 
+val it = |- LENGTH [1; 2] = 2
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{\hol{FULL\_SIMP\_TAC} Example}
+
+\begin{exampleblock}{Current GoalStack}
+\begin{semiverbatim}\scriptsize
+P (SUC (SUC x0)) (SUC (SUC y0))
+------------------------------------
+  0.  SUC y1 = y2
+  1.  x1 = SUC x0
+  2.  y1 = SUC y0
+  3.  SUC x1 = x2
+\end{semiverbatim}
+\end{exampleblock}
+
+\begin{exampleblock}{Action}
+\begin{semiverbatim}\scriptsize
+FULL_SIMP_TAC std_ss [] 
+\end{semiverbatim}
+\end{exampleblock}
+ 
+\begin{exampleblock}{Resulting GoalStack}
+\begin{semiverbatim}\scriptsize
+P (SUC (SUC x0)) y2
+------------------------------------
+  0.  SUC (SUC y0) = y2
+  1.  x1 = SUC x0
+  2.  y1 = SUC y0
+  3.  SUC x1 = x2
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{\hol{REV\_FULL\_SIMP\_TAC} Example}
+
+\begin{exampleblock}{Current GoalStack}
+\begin{semiverbatim}\scriptsize
+P (SUC (SUC x0)) y2
+------------------------------------
+  0.  SUC (SUC y0) = y2
+  1.  x1 = SUC x0
+  2.  y1 = SUC y0
+  3.  SUC x1 = x2
+\end{semiverbatim}
+\end{exampleblock}
+
+\begin{exampleblock}{Action}
+\begin{semiverbatim}\scriptsize
+REV_FULL_SIMP_TAC std_ss [] 
+\end{semiverbatim}
+\end{exampleblock}
+ 
+\begin{exampleblock}{Resulting GoalStack}
+\begin{semiverbatim}\scriptsize
+P x2 y2
+------------------------------------
+  0.  SUC (SUC y0) = y2
+  1.  x1 = SUC x0
+  2.  y1 = SUC y0
+  3.  SUC (SUC x0) = x2
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Common simpsets}
+
+\begin{itemize}
+\item \hol{pure\_ss} --- empty simpset
+\item \hol{bool\_ss} --- basic simpset
+\item \hol{std\_ss} --- standard simpset
+\item \hol{arith\_ss} --- arithmetic simpset
+\item \hol{list\_ss} --- list simpset
+\item \hol{real\_ss} --- real simpset
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Common simpset-fragments}
+
+\begin{itemize}
+\item many theories and libraries provide their own simpset-fragments
+\item \hol{PRED\_SET\_ss} --- simplify sets
+\item \hol{STRING\_ss} --- simplify strings
+\item \hol{QI\_ss} --- extra quantifier instantiations
+\item \hol{gen\_beta\_ss} --- $\beta$ reduction for pairs
+\item \hol{ETA\_ss} --- $\eta$ conversion
+\item \hol{EQUIV\_EXTRACT\_ss} --- extract common part of equivalence
+\item \hol{CONJ\_ss} --- use conjunctions for context
+\item \hol{LIFT\_COND\_ss} --- lifting if-then-else
+\item \ldots
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Build-In Conversions and Decision Procedures}
+
+\begin{itemize}
+\item in contrast to \hol{Rewrite} lib the simplifier can
+run arbitrary conversions
+\item most common and useful conversion is probably $\beta$-reduction
+\item \hol{std\_ss} has support for basic arithmetic and numerals
+\item it also has simple, syntactic conversions for instantiating quantifiers
+\begin{itemize}
+\item \hol{!x. ... \holAnd{} (x = c) \holAnd{} ... ==> ...}
+\item \hol{!x. ... \holOr{} \holNeg(x = c) \holOr{} ...}
+\item \hol{?x. ... \holAnd{} (x = c) \holAnd{} ...}
+\end{itemize}
+
+\item besides very useful conversions, there are decision procedures as well
+\item the most frequently used one is probably the arithmetic decision procedure you already know from \hol{DECIDE}
+
+\end{itemize}
+
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Examples I}
+\begin{semiverbatim}\scriptsize
+> \hol{SIMP_CONV std_ss [] ``(\textbsl{}x. x + 2) 5``} 
+val it = |- (\textbsl{}x. x + 2) 5 = 7
+
+> \hol{SIMP_CONV std_ss [] ``!x. Q x \holAnd{} (x = 7) ==> P x``} 
+val it = |- (!x. Q x \holAnd{} (x = 7) ==> P x) <=> (Q 7 ==> P 7)``
+
+> \hol{SIMP_CONV std_ss [] ``?x. Q x \holAnd{} (x = 7) \holAnd{} P x``} 
+val it = |- (?x. Q x \holAnd{} (x = 7) \holAnd{} P x) <=> (Q 7 \holAnd{} P 7)``
+
+> \hol{SIMP_CONV std_ss [] ``x > 7 ==> x > 5``} 
+Exception- UNCHANGED raised
+
+> \hol{SIMP_CONV arith_ss [] ``x > 7 ==> x > 5``} 
+val it = |- (x > 7 ==> x > 5) <=> T
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Higher Order Rewriting}
+
+\begin{itemize}
+\item the simplifier supports higher order rewriting
+\item this is often very handy
+\item for example it allows moving quantifiers around easily
+\end{itemize}
+
+\begin{exampleblock}{Examples}
+\begin{semiverbatim}\scriptsize
+> \hol{SIMP_CONV std_ss [FORALL_AND_THM] ``!x. P x \holAnd{} Q \holAnd{} R x``} 
+val it = |- (!x. P x \holAnd{} Q \holAnd{} R x) <=> 
+            (!x. P x) \holAnd{} Q \holAnd{} (!x. R x)
+
+> \hol{SIMP_CONV std_ss [GSYM RIGHT_EXISTS_AND_THM, GSYM LEFT_FORALL_IMP_THM] 
+   ``!y. (P y \holAnd{} (?x. y = SUC x)) ==> Q y``} 
+val it = |- (!y. P y \holAnd{} (?x. y = SUC x) ==> Q y) <=> 
+            !x. P (SUC x) ==> Q (SUC x)
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+\frametitle{Context}
+
+\begin{itemize}
+\item a great feature of the simplifier is that it can use context information
+\item by default simple context information is used like
+\begin{itemize}
+\item the precondition of an implication
+\item the condition of \hol{if-then-else} 
+\end{itemize}
+\item one can configure which context to use via congruence rules
+\begin{itemize}
+\item \eg by using \hol{CONJ\_ss} one can easily use context of conjunctions
+\item warning: using \hol{CONJ\_ss} can be slow
+\end{itemize}
+\item using context often simplifies proofs drastically
+\begin{itemize}
+\item using \hol{Rewrite} lib, often a goal needs to be split and a precondition moved to the assumptions
+\item then \hol{ASM\_REWRITE\_TAC} can be used
+\item with \hol{SIMP\_TAC} there is no need to split the goal
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Context Examples}
+
+\begin{semiverbatim}\scriptsize
+> \hol{SIMP_CONV std_ss [] ``((l = []) ==> P l) \holAnd{} Q l``} 
+val it = |- ((l = []) ==> P l) \holAnd{} Q l <=> 
+            ((l = []) ==> P []) \holAnd{} Q l
+
+> \hol{SIMP_CONV arith_ss [] ``if (c \holAnd{} x < 5) then (P c \holAnd{} x < 6) else Q c``} 
+val it = |- (if c \holAnd{} x < 5 then P c \holAnd{} x < 6 else Q c) <=>
+            if c \holAnd{} x < 5 then P T else Q c:
+
+> \hol{SIMP_CONV std_ss [] ``P x \holAnd{} (Q x \holAnd{} P x ==> Z x)``} 
+Exception- UNCHANGED raised
+
+> \hol{SIMP_CONV (std_ss++boolSimps.CONJ_ss) [] ``P x \holAnd{} (Q x \holAnd{} P x ==> Z x)``} 
+val it = |- P x \holAnd{} (Q x \holAnd{} P x ==> Z x) <=> P x \holAnd{} (Q x ==> Z x)\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting I}
+
+\begin{itemize}
+\item perhaps the most powerful feature of the simplifier is that it supports conditional rewriting
+\item this means it allows \emph{conditional} rewrite theorems of the form\\
+  \hol{|- cond ==> (t1 = t2)} 
+\item if the simplifier finds a term \hol{t1'} it can rewrite via \hol{t1 = t2} to \hol{t2'}, it tries to discharge the assumption \hol{cond'}
+\item for this, it calls itself recursively on \hol{cond'}
+\begin{itemize}
+\item all the decision procedures and all context information is used
+\item conditional rewriting can be used
+\item to prevent divergence, there is a limit on recursion depth
+\end{itemize}
+\item if \hol{cond' = T} can be shown, \hol{t1'} is rewritten to \hol{t2'}
+\item otherwise \hol{t1'} is not modified
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting Example}
+
+\begin{itemize}
+\item consider the conditional rewrite theorem \\\hol{!l n.\ LENGTH l <= n ==> (DROP n l = [])}
+\item let's assume we want to prove \\\hol{(DROP 7 [1;2;3;4]) ++ [5;6;7] = [5;6;7]}
+\item we can without conditional rewriting
+\begin{itemize}
+\item show \hol{|- LENGTH [1;2;3;4] <= 7}
+\item use this to discharge the precondition of the rewrite theorem
+\item use the resulting theorem to rewrite the goal
+\end{itemize}
+\item with conditional rewriting, this is all automated
+\begin{semiverbatim}
+> \hol{SIMP_CONV list_ss [DROP_LENGTH_TOO_LONG]
+    ``(DROP 7 [1;2;3;4]) ++ [5;6;7]``}
+val it = |- DROP 7 [1; 2; 3; 4] ++ [5; 6; 7] = [5; 6; 7]
+\end{semiverbatim}
+\item conditional rewriting often shortens proofs considerably
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting Example II}
+
+\begin{block}{Proof with Rewrite}
+\begin{semiverbatim}\scriptsize
+prove (``(DROP 7 [1;2;3;4]) ++ [5;6;7] = [5;6;7]``,
+`DROP 7 [1;2;3;4] = []` by (
+  MATCH_MP_TAC DROP_LENGTH_TOO_LONG >>
+  REWRITE_TAC[LENGTH] >>
+  DECIDE_TAC
+) >>
+ASM_REWRITE_TAC[APPEND])
+\end{semiverbatim}
+\end{block}
+
+\begin{block}{Proof with Simplifier}
+\begin{semiverbatim}\scriptsize
+prove (``(DROP 7 [1;2;3;4]) ++ [5;6;7] = [5;6;7]``,
+SIMP_TAC list_ss [])
+\end{semiverbatim}
+Notice that \hol{DROP\_LENGTH\_TOO\_LONG} is part of \hol{list\_ss}.
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting II}
+
+\begin{itemize}
+\item conditional rewriting is a very powerful technique
+\item decision procedures and sophisticated rewrites can be used to discharge preconditions without cluttering proof state
+\item it provides a powerful search for theorems that apply
+\item however, if used naively, it can be slow
+\item moreover, to work well, rewrite theorems need to of a special form
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting Pitfalls I}
+
+\begin{itemize}
+\item if the pattern is too general, the simplifier becomes very slow
+\item consider the following, trivial but hopefully educational example
+\begin{minipage}{.85\textwidth}
+\begin{exampleblock}{Looping example}
+\begin{semiverbatim}\scriptsize
+> \hol{val my_thm = prove (``~P ==> (P = F)``, PROVE_TAC[])}
+> \hol{time (SIMP_CONV std_ss [my_thm]) ``P1 \holAnd{} P2 \holAnd{} P3 \holAnd{} ... \holAnd{} P10``}
+runtime: 0.84000s,    gctime: 0.02400s,     systime: 0.02400s.
+Exception- UNCHANGED raised
+
+> \hol{time (SIMP_CONV std_ss []) ``P1 \holAnd{} P2 \holAnd{} P3 \holAnd{} ... \holAnd{} P10``}
+runtime: 0.00000s,    gctime: 0.00000s,     systime: 0.00000s.
+Exception- UNCHANGED raised
+\end{semiverbatim}
+\end{exampleblock}
+\end{minipage}
+\begin{itemize}
+\item notice that the rewrite is applied at plenty of places (quadratic in number of conjuncts)
+\item notice that each backchaining triggers many more backchainings
+\item each has to be aborted to prevent diverging
+\item as a result, the simplifier becomes very slow
+\item incidentally, the conditional rewrite is useless
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting Pitfalls II}
+
+\begin{itemize}
+\item good conditional rewrites \hol{|- c ==> (l = r)} should mention only variables in \hol{c} that appear in \hol{l}
+\item if \hol{c} contains extra variables \hol{x1 ... xn}, the conditional rewrite engine has to search instantiations for them
+\item this mean that conditional rewriting is trying discharge the precondition \hol{?x1 ... xn.\ c}
+\item the simplifier is usually not able to find such instances
+
+\begin{exampleblock}{Transitivity}
+\begin{semiverbatim}\scriptsize
+> \hol{val P_def = Define `P x y = x < y`;}
+> \hol{val my_thm = prove (``!x y z. P x y ==> P y z ==> P x z``, ...)}
+> \hol{SIMP_CONV arith_ss [my_thm] ``P 2 3 \holAnd{} P 3 4 ==> P 2 4``}
+Exception- UNCHANGED raised
+
+(* However transitivity of < build in via decision procedure *)
+> \hol{SIMP_CONV arith_ss [P_def] ``P 2 3 \holAnd{} P 3 4 ==> P 2 4``}
+val it = |- P 2 3 \holAnd{} P 3 4 ==> P 2 4 <=> T:
+\end{semiverbatim}
+\end{exampleblock}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conditional Rewriting Pitfalls III}
+
+\begin{itemize}
+\item let's look in detail why \hol{SIMP\_CONV} did not make progress above
+\end{itemize}
+
+\begin{semiverbatim}\scriptsize
+> \hol{set_trace "simplifier" 2;}
+> \hol{SIMP_CONV arith_ss [my_thm] ``P 2 3 \holAnd{} P 3 4 ==> P 2 4``}
+[468000]:   more context: |- !x y z. P x y ==> P y z ==> P x z
+[468000]:   New rewrite: |- (?y. P x y \holAnd{} P y z) ==> (P x z <=> T)
+...
+[584000]:   more context:  [.] |- P 2 3 \holAnd{} P 3 4
+[584000]:   New rewrite:  [.] |- P 2 3 <=> T
+[584000]:   New rewrite:  [.] |- P 3 4 <=> T
+[588000]:   rewriting P 2 4 with |- (?y. P x y \holAnd{} P y z) ==> (P x z <=> T)
+[588000]:   trying to solve: ?y. P 2 y \holAnd{} P y 4
+[588000]:   rewriting P 2 y with |- (?y. P x y \holAnd{} P y z) ==> (P x z <=> T)
+[592000]:   trying to solve: ?y'. P 2 y' \holAnd{} P y' y
+...
+[596000]:   looping - cut
+...
+[608000]:   looping - stack limit reached
+...
+[640000]:   couldn't solve: ?y. P 2 y \holAnd{} P y 4
+Exception- UNCHANGED raised
+\end{semiverbatim}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Conditional vs.\ Unconditional Rewrite Rules}
+
+\begin{itemize}
+\item conditional rewrite rules are often much more powerful
+\item however, \ml{Rewrite} lib does not support them
+\item for this reason there are often two versions of rewrite theorems
+\end{itemize}
+
+\begin{exampleblock}{\hol{drop} example}
+\begin{itemize}
+\item \hol{DROP\_LENGTH\_NIL} is a useful rewrite rule:\\
+\hol{|- !l.\ DROP (LENGTH l) l = []}
+\item in proofs, one needs to be careful though to preserve exactly this form
+\begin{itemize}
+\item one should not (partly) evaluate \hol{LENGTH l} or modify \hol{l} somehow
+\end{itemize}
+\item with the conditional rewrite rule \hol{DROP\_LENGTH\_TOO\_LONG} one does not need to be as careful \\\hol{|- !l n.\ LENGTH l <= n ==> (DROP n l = [])}
+\begin{itemize}
+\item the simplifier can use simplify the precondition using information about \hol{LENGTH} and even arithmetic decision procedures
+\end{itemize}
+\end{itemize}
+\end{exampleblock}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Special Rewrite Forms}
+
+\begin{itemize}
+\item some theorems given in the list of rewrites to the simplifier are used for special purposes
+\item there are marking functions that mark these theorems
+\begin{itemize}
+\item \hol{Once :\ thm -> thm} use given theorem at most once
+\item \hol{Ntimes :\ thm -> int -> thm} use given theorem at most the given number of times
+\item \hol{AC :\ thm -> thm -> thm} use given associativity and commutativity theorems for AC rewriting
+\item \hol{Cong :\ thm -> thm} use given theorem as a congruence rule 
+\end{itemize}
+\item these special forms are easy ways to add this information to a simpset
+\item it can be directly set in a simpset as well
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Example \hol{Once}}
+
+\begin{semiverbatim}\scriptsize
+> \hol{SIMP_CONV pure_ss [Once ADD_COMM] ``a + b = c + d``}
+val it = |- (a + b = c + d) <=> (b + a = c + d)
+
+> \hol{SIMP_CONV pure_ss [Ntimes ADD_COMM 2] ``a + b = c + d``}
+val it = |- (a + b = c + d) <=> (a + b = c + d)
+
+> \hol{SIMP_CONV pure_ss [ADD_COMM] ``a + b = c + d``}
+Exception- UNCHANGED raised
+
+> \hol{ONCE_REWRITE_CONV [ADD_COMM] ``a + b = c + d``}
+val it = |- (a + b = c + d) <=> (b + a = d + c)
+
+> \hol{REWRITE_CONV [ADD_COMM] ``a + b = c + d``}
+... diverges ...
+\end{semiverbatim}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Stateful Simpset}
+
+\begin{itemize}
+\item the simpset \hol{srw\_ss()} is maintained by the system
+\begin{itemize}
+\item it is automatically extended by new type-definitions
+\item theories can extend it via \hol{export\_rewrites}
+\item libs can augment it via \hol{augment\_srw\_ss}
+\end{itemize}
+\item the stateful simpset contains many rewrites
+\item it is very powerful and easy to use
+\end{itemize}
+
+\begin{exampleblock}{Example}
+\begin{semiverbatim}\scriptsize
+> \hol{SIMP_CONV (srw_ss()) [] ``case [] of [] => (2 + 4)``}
+val it = |- (case [] of [] => 2 + 4 | v::v1 => ARB) = 6
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Discussion on Stateful Simpset}
+
+\begin{itemize}
+\item the stateful simpset is very powerful and easy to use
+\item however, results are hard to predict
+\item proofs using it unwisely are hard to maintain
+\item the stateful simpset can expand too much
+\begin{itemize}
+\item bigger, harder to read proof states
+\item high level arguments become hard to see
+\end{itemize}
+\item whether to use the stateful simpset depends on personal proof style
+\item I advise to not use \hol{srw\_ss} at the beginning
+\item once you got a good intuition on how the simplifier works, make your own choice
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Adding Own Conversions}
+
+\begin{itemize}
+\item it is complicated to add arbitrary decision procedures to a simpset
+\item however, adding simple conversions is straightforward
+\item a conversion is described by a \hol{stdconvdata} record
+\begin{semiverbatim}\scriptsize
+type stdconvdata = \{ 
+  name: string,    (* name for debugging *)
+  pats: term list, (* list of patterns, when to try conv *)
+  conv: conv       (* the conversion *)
+\}
+\end{semiverbatim}
+\item use \hol{std\_conv\_ss} to create simpset-fragement
+\end{itemize}
+
+\begin{exampleblock}{Example}
+\begin{semiverbatim}\scriptsize
+val WORD_ADD_ss =
+  simpLib.std_conv_ss
+    \{conv = CHANGED_CONV WORD_ADD_CANON_CONV,
+     name = "WORD_ADD_CANON_CONV",
+     pats = [``words\$word_add (w:'a word) y``]\}
+\end{semiverbatim}
+\end{exampleblock}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Summary Simplifier}
+
+\begin{itemize}
+\item the simplifier is HOL's main workhorse for automation
+\item it is very powerful
+\item conditional rewriting very powerful
+\begin{itemize}
+\item here only simple examples were presented
+\item experiment with it to get a feeling
+\end{itemize}
+\item many advanced features not discussed here at all
+\begin{itemize}
+\item using congruence rules
+\item writing own decision procedures
+\item rewriting with respect to arbitrary congruence relations
+\end{itemize}
+\end{itemize}
+
+
+\begin{alertblock}{Warning}
+The simplifier is very powerful. Make sure you understand it and are in control when using it.
+Otherwise your proofs easily become lengthy, convoluted and hard to maintain.
+\end{alertblock}
+
+
+\end{frame}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "current"
+%%% End:

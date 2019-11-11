@@ -1,0 +1,11 @@
+val IS_WEAK_SUBLIST_REC_def = Define `
+  (IS_WEAK_SUBLIST_REC (l1 : 'a list) ([]:'a list) = T) /\
+  (IS_WEAK_SUBLIST_REC [] (_::_) = F) /\
+  (IS_WEAK_SUBLIST_REC (y::ys) (x::xs) = (
+     (x = y) /\ IS_WEAK_SUBLIST_REC ys xs) \/ (IS_WEAK_SUBLIST_REC ys (x::xs)))`;
+
+val FILTER_BY_BOOLS_def = Define `
+  FILTER_BY_BOOLS bl l = MAP SND (FILTER FST (ZIP (bl, l)))`
+
+val IS_WEAK_SUBLIST_FILTER_def = Define `IS_WEAK_SUBLIST_FILTER l1 l2 =
+  ?(bl : bool list). (LENGTH bl = LENGTH l1) /\ (l2 = FILTER_BY_BOOLS bl l1)`

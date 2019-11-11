@@ -1,0 +1,121 @@
+\documentclass[a4paper,10pt,oneside]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsfonts}
+\input{../hol_commands.inc}
+
+\title{Exercise 1}
+
+\begin{document}
+\begin{center}
+\usekomafont{sectioning}\usekomafont{part}ITP Exercise 1
+\webversion{}{\\\small{due Friday 28th April}}
+\end{center}
+\bigskip
+
+
+\section{Setting up Environment}
+
+We will use the HOL theorem prover\footnote{\url{https://hol-theorem-prover.org}}. 
+For the practical sessions you will need to be able to use HOL on your own machine. Therefore, please set up the following software.
+
+\subsection{Standard ML}
+
+You will need to have Standard ML available. Please install PolyML 5.6\footnote{webpage \url{http://www.polyml.org}}\footnote{download link \url{https://github.com/polyml/polyml/releases/tag/v5.6}} or later.
+
+\subsection{HOL}
+
+Please install a recent version of the HOL theorem prover. I recommend installing the most recent version from the git repository. If for some reason you don't want to do this, the latest release should be fine as well. Installation instructions can be found on HOL's webpage\footnote{see \url{https://hol-theorem-prover.org/\#get}}.
+
+\subsection{Emacs}
+
+In the lecture GNU Emacs\footnote{https://www.gnu.org/software/emacs/} will be used as a user-interface. Please install a recent version of Emacs. Please make sure you use Emacs and not XEmacs. 
+
+\subsection{HOL-Mode and SML mode}
+We will use the \emph{hol-mode} for Emacs. It is distributed with HOL, but needs setting up in Emacs. Please set it up and familiarise yourself with its basic usage. Documentation can be found on HOL's webpage\footnote{see \url{https://hol-theorem-prover.org/hol-mode.html}}.
+We will write SML programs all the time. Please install the SML mode\footnote{\url{https://elpa.gnu.org/packages/sml-mode.html}} to enable syntax highlighting for ML in Emacs.
+Information on both the SML and the HOL mode can also be found in HOL's interaction
+manual\footnote{\url{https://hol-theorem-prover.org/HOL-interaction.pdf}}.
+
+
+\section{SML}
+
+Let's refresh our knowledge about Standard ML. Moreover, these
+exercises are aimed at getting familiar with Emacs and using the HOL
+mode. So, please use Emacs with HOL mode as a user-interface and treat
+HOL like a ML REPL.
+
+To learn more about the Emacs mode, you can have a look at the HOL interaction manual.
+If you need a brush-up on SML syntax, I recommend reading something compact like
+\url{https://learnxinyminutes.com/docs/standard-ml/}. If you need more, the book
+\emph{ML for the Working Programmer} by Prof.\ Larry Paulson is a good introduction.
+
+\subsection{Our Own Lists}
+
+Of course SML comes with a decent list library. However, as an exercise implement your own list datatype and implement the following list operations for your own datatype:
+%
+\begin{itemize}
+\item \texttt{length}
+\item \texttt{append} (\texttt{@})
+\item \texttt{rev}
+\item \texttt{revAppend}
+\item \texttt{exists}
+\end{itemize}
+%
+If you don't know what these functions should do, you can find documentation of the Standard ML Basis Library at e.\,g.\ \url{http://sml-family.org}. 
+
+In addition implement a function \texttt{replicate\ :\ 'a -> int -> 'a list}, which is supposed to
+construct a list of the given length that only contains the given element. For example \texttt{replicate "a" 3} should return the list \texttt{["a", "a", "a"]}.   
+
+\begin{enumerate}
+\item Prove with pen and paper that for your implementation 
+  \texttt{append l [] = l} holds for all \texttt{l}.
+\item Similarly, prove \texttt{$\forall$l1 l2.\ length (append l1 l2) = length l1 + length l2}.
+\item There are strong connections between \texttt{append}, \texttt{revAppend} and \texttt{rev}.
+One can for example define \texttt{revAppend} by \texttt{revAppend l1 l2 = append (rev l1) l2}.
+Write down similar definitions for \texttt{rev} and \texttt{append} using only \texttt{revAppend}. 
+\end{enumerate}
+
+\subsection{Making Change}
+
+In the following, let's use the standard list library again. Write a
+program that given the coins and notes you have in your wallet, lists
+\emph{all} the possible ways to pay a certain amount. Represent the
+coins you have as a list of integers. If a number occurs twice in
+this list, you have two coins with this value. The result should be
+returned in the form of a list of lists. For simplicity, the output
+may contain duplicates.
+
+An example implementation of the function 
+\texttt{make\_change\ :\ int list -> int -> int list list} should
+shows for example the following outputs. Notice however, that the output of
+your implementation is allowed to contain duplicates and use a different
+order of the lists.
+
+\begin{itemize}
+\item \texttt{make\_change [5,2,2,1,1,1] 6 =}\\
+\-\texttt{\ \ \ [[5, 1], [2, 2, 1, 1]]}
+\item \texttt{make\_change [5,2,2,1,1,1] 15 = []}
+\item \texttt{make\_change [10,5,5,5,2,2,1,1,1] 10 =}\\
+      \-\texttt{\ \ \ [[10], [5, 5], [5, 2, 2, 1], [5, 2, 1, 1, 1]]}
+\end{itemize}
+\bigskip
+Write down as formally as you can some properties of \texttt{make\_change}. An example
+property is
+
+\begin{center}\texttt{
+$\forall$cs n. n > sum cs $\Longrightarrow$ make\_change cs n = []}
+\end{center}
+where \texttt{sum} is defined by \texttt{val sum = foldl (op+) 0} and we assume that \texttt{cs} contains no number less than 0.
+
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
